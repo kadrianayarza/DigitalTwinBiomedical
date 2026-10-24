@@ -74,7 +74,7 @@ function RoleGate({ role }: { role: Role }) {
   if (role === 'nurse') return <NurseDashboard />;
   const patient = data.patients.find(p => p.id === data.me!.patientId);
   if (!patient) return <Onboarding role={role} />;
-  return <PatientView patient={patient} />;
+  return <PatientView key={String(patient.id)} patient={patient} />;
 }
 
 function Onboarding({ role }: { role: Role }) {

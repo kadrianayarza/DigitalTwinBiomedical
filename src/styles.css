@@ -708,6 +708,64 @@ textarea:disabled {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.pswitch {
+  position: relative;
+  flex: none;
+}
+.pswitch__btn {
+  width: auto;
+  display: flex;
+  gap: 1px;
+  padding: 0 4px 0 7px;
+}
+.roleswitch .pswitch__chev {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
+}
+.pswitch__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 250px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.16);
+}
+.pswitch__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  text-align: left;
+}
+.pswitch__item:hover {
+  background: rgba(26, 115, 232, 0.08);
+}
+.pswitch__item--on {
+  background: rgba(26, 115, 232, 0.12);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.pswitch__name {
+  font-weight: 600;
+  font-size: 14px;
+}
+.pswitch__care {
+  font-size: 12px;
+  color: var(--muted);
+}
 .topbar__who strong {
   font-family: var(--font-ui);
   font-weight: 600;

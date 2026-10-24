@@ -10,6 +10,7 @@ import { buildHotspots } from '../twin/hotspots';
 import { PodVitals } from '../components/PodVitals';
 import { Brand, Panel, SeverityHex } from '../components/ui';
 import { RoleSwitch } from '../components/RoleSwitch';
+import { PatientSwitch } from '../components/PatientSwitch';
 import { SymptomSheet, type SymptomDraft } from './SymptomSheet';
 import { TwinPhotoCard } from './TwinPhotoCard';
 
@@ -117,6 +118,7 @@ export function PatientView({ patient }: { patient: Patient }) {
             Day {String(day).padStart(2, '0')} · {careLabel(patient)}
           </span>
         </div>
+        <PatientSwitch currentId={patient.id} />
         <RoleSwitch to="nurse" />
       </header>
 
