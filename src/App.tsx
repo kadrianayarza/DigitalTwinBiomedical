@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { useReducer } from 'spacetimedb/react';
 import { reducers } from './module_bindings';
 import { DataProvider, useData } from './lib/data';
@@ -8,6 +8,8 @@ import { Brand } from './components/ui';
 import { useAdoptPatientParam } from './components/RoleSwitch';
 import { PatientView } from './patient/PatientView';
 import { NurseDashboard } from './nurse/NurseDashboard';
+
+const LandingTwin = lazy(() => import('./twin/LandingTwin'));
 
 export default function App() {
   const role = currentRole();
@@ -22,28 +24,35 @@ export default function App() {
 function Landing() {
   return (
     <div className="landing">
-      <main className="landing__inner">
-        <div className="kicker">Symptom tracking · Early detection · Outcome simulation · Remote monitoring</div>
-        <h1 className="titlecard">
-          <span className="titlecard__line">Digital Twin</span>
-          <span className="titlecard__line titlecard__line--sub">Biomedical</span>
-        </h1>
-        <p className="landing__lead">
-          A living 3D twin for care at home. Patients track symptoms where they feel them, catch complications early,
-          and see how their recovery can unfold, while their nurse monitors remotely and approves every AI-drafted
-          handoff.
-        </p>
-        <div className="landing__choices">
-          <button className="choice" onClick={() => goToRole('patient')}>
-            <span className="choice__code">Access 01</span>
-            <span className="choice__title">I'm a patient</span>
-            <span className="choice__desc">Check in from home</span>
-          </button>
-          <button className="choice" onClick={() => goToRole('nurse')}>
-            <span className="choice__code">Access 02</span>
-            <span className="choice__title">I'm a nurse</span>
-            <span className="choice__desc">Open the follow-up console</span>
-          </button>
+      <main className="landing__hero">
+        <div className="landing__copy">
+          <div className="kicker">Symptom tracking · Early detection · Outcome simulation · Remote monitoring</div>
+          <h1 className="titlecard titlecard--hero">
+            <span className="titlecard__line">Digital Twin</span>
+            <span className="titlecard__line titlecard__line--sub">Biomedical</span>
+          </h1>
+          <p className="landing__lead">
+            A living 3D twin for care at home. Patients track symptoms where they feel them, catch complications
+            early, and see how their recovery can unfold, while their nurse monitors remotely and approves every
+            AI-drafted handoff.
+          </p>
+          <div className="landing__choices">
+            <button className="choice" onClick={() => goToRole('patient')}>
+              <span className="choice__code">Access 01</span>
+              <span className="choice__title">I'm a patient</span>
+              <span className="choice__desc">Check in from home</span>
+            </button>
+            <button className="choice" onClick={() => goToRole('nurse')}>
+              <span className="choice__code">Access 02</span>
+              <span className="choice__title">I'm a nurse</span>
+              <span className="choice__desc">Open the follow-up console</span>
+            </button>
+          </div>
+        </div>
+        <div className="landing__twin" aria-hidden>
+          <Suspense fallback={null}>
+            <LandingTwin />
+          </Suspense>
         </div>
       </main>
     </div>

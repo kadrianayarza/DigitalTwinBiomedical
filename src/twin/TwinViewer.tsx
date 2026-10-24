@@ -326,7 +326,7 @@ type Visible = { muscle: boolean; bone: boolean; vessel: boolean; implant: boole
 type Mats = TwinMaterials;
 
 /** Floor grid, contact shadow, and slowly turning range rings under the twin. */
-function Platform() {
+export function Platform() {
   const texture = useMemo(createGroundShadowTexture, []);
   useEffect(() => () => texture.dispose(), [texture]);
   const arcs = useRef<THREE.Group>(null);

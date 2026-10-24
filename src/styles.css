@@ -503,6 +503,52 @@ textarea:disabled {
     linear-gradient(rgba(26, 115, 232, 0.06) 1px, transparent 1px) 0 0 / 48px 48px,
     linear-gradient(90deg, rgba(26, 115, 232, 0.06) 1px, transparent 1px) 0 0 / 48px 48px;
 }
+/* Hero sizes key off viewport height too, so the copy and both choices fit a 13" laptop without scrolling. */
+.landing:has(.landing__hero) {
+  padding: clamp(16px, 4vh, 48px) clamp(20px, 3vw, 48px);
+}
+.landing__hero {
+  width: min(1320px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  align-items: center;
+  gap: clamp(16px, 3vw, 48px);
+}
+.landing__copy {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 2.4vh, 22px);
+  min-width: 0;
+}
+.titlecard--hero .titlecard__line {
+  font-size: clamp(48px, min(7.6vw, 14vh), 150px);
+}
+.titlecard--hero .titlecard__line--sub {
+  font-size: clamp(28px, min(3.9vw, 7.2vh), 78px);
+}
+.landing__copy .landing__lead {
+  margin: 0;
+  font-size: clamp(15px, 2.3vh, 19px);
+}
+.landing__copy .choice {
+  padding: clamp(12px, 2vh, 18px) 20px;
+}
+.landing__copy .choice__title {
+  font-size: clamp(24px, 3.7vh, 32px);
+}
+.landing__twin {
+  height: min(86vh, 840px);
+  min-height: 340px;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .landing__hero {
+    grid-template-columns: 1fr;
+  }
+  .landing__twin {
+    height: 60vh;
+  }
+}
 .landing__inner {
   width: min(980px, 100%);
   display: flex;
