@@ -1,5 +1,4 @@
-import type { VitalSample } from '../module_bindings/types';
-import { CALF_BASELINE_C, INCISION_BASELINE_C } from '../components/PodVitals';
+import type { VitalSign } from '../module_bindings/types';
 import type { HotspotId } from './bodyModel';
 
 export type HotspotTone = 'info' | 'watch' | 'alarm';
@@ -13,33 +12,31 @@ export type TwinHotspot = {
 };
 
 type Input = {
-  vitals: readonly VitalSample[];
+  vitals: readonly VitalSign[];
   audience: 'patient' | 'nurse';
 };
 
-const signed = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(1)}`;
-
 /** Landmark callouts. Thresholds mirror the server rules in spacetimedb/src/clinical.ts. */
 export function buildHotspots({ vitals, audience }: Input): TwinHotspot[] {
-  const last = vitals[vitals.length - 1];
   const recent = vitals.slice(-5);
-  const avg = (f: (v: VitalSample) => number) =>
+  const avg = (f: (v: VitalSign) => number) =>
     recent.length ? recent.reduce((s, v) => s + f(v), 0) / recent.length : undefined;
 
-  const incisionDelta = last ? (avg(v => v.incisionTempC) ?? 0) - INCISION_BASELINE_C : undefined;
-  const calfDelta = last ? (avg(v => v.calfTempC) ?? 0) - CALF_BASELINE_C : undefined;
-  const flexWindow = vitals.slice(-60);
-  const bestBend = flexWindow.length ? Math.max(...flexWindow.map(v => v.kneeFlexDeg)) : undefined;
   const hr = avg(v => v.hr);
+  const systolic = avg(v => v.systolic);
+  const diastolic = avg(v => v.diastolic);
+  const respRate = avg(v => v.respRate);
   const spo2 = avg(v => v.spo2);
+  const tempC = avg(v => v.tempC);
 
-  const incisionTone: HotspotTone =
-    incisionDelta === undefined ? 'info' : incisionDelta >= 1.5 ? 'alarm' : incisionDelta >= 0.8 ? 'watch' : 'info';
-  const calfTone: HotspotTone =
-    calfDelta === undefined ? 'info' : calfDelta >= 1.0 ? 'alarm' : calfDelta >= 0.5 ? 'watch' : 'info';
-  const bendTone: HotspotTone = bestBend !== undefined && flexWindow.length >= 40 && bestBend < 60 ? 'watch' : 'info';
+  const tempTone: HotspotTone =
+    tempC === undefined ? 'info' : tempC >= 38 ? 'alarm' : tempC >= 37.5 ? 'watch' : 'info';
   const cardioTone: HotspotTone =
-    (spo2 ?? 100) < 92 ? 'alarm' : (hr ?? 0) > 100 ? 'watch' : 'info';
+    (spo2 ?? 100) < 92
+      ? 'alarm'
+      : (hr ?? 0) > 100 || (respRate ?? 0) > 24 || (systolic ?? 120) < 90 || (systolic ?? 120) >= 180
+        ? 'watch'
+        : 'info';
 
   if (audience === 'patient') {
     return [
@@ -48,25 +45,24 @@ export function buildHotspots({ vitals, audience }: Input): TwinHotspot[] {
         kicker: 'Incision',
         body: 'Some warmth, bruising and swelling are normal for a few weeks. Tap here if redness spreads, it drains, or you feel feverish.',
         meta:
-          incisionDelta === undefined
+          tempC === undefined
             ? undefined
-            : incisionTone === 'info'
-              ? 'Pod: skin temperature is close to your usual.'
-              : 'Pod: warmer than your usual. Your care team can see this too.',
-        tone: incisionTone,
+            : tempTone === 'info'
+              ? 'Pod: your temperature is normal.'
+              : 'Pod: your temperature is up. Your care team can see this too.',
+        tone: tempTone,
       },
       {
         id: 'bend',
         kicker: 'Knee bend',
         body: 'Bending a little more each day helps your new knee heal. Follow the exercise plan from your surgeon.',
-        meta: bestBend === undefined ? undefined : `Pod: best bend lately ${Math.round(bestBend)}°.`,
         tone: 'info',
       },
       {
         id: 'calf',
         kicker: 'Calf',
         body: 'New calf pain, swelling or warmth can be a sign of a blood clot. Tap your calf to tell your nurse right away.',
-        tone: calfTone === 'info' ? 'info' : 'watch',
+        tone: 'info',
       },
       {
         id: 'chest',
@@ -77,33 +73,33 @@ export function buildHotspots({ vitals, audience }: Input): TwinHotspot[] {
     ];
   }
 
+  const none = 'No pod data yet.';
   return [
     {
       id: 'incision',
-      kicker: 'Incision temp',
-      body: last ? `${last.incisionTempC.toFixed(1)} °C · ${signed(incisionDelta!)} °C vs baseline (5-sample mean)` : 'No pod data yet.',
-      meta: 'Rule: +1.5 °C → same-day review',
-      tone: incisionTone,
-    },
-    {
-      id: 'bend',
-      kicker: 'Knee flexion',
-      body: bestBend === undefined ? 'No pod data yet.' : `Max ${Math.round(bestBend)}° over last ${flexWindow.length} samples`,
-      meta: 'Rule: < 60° after 40 samples → 24 h review',
-      tone: bendTone,
+      kicker: 'Temperature',
+      body: tempC === undefined ? none : `${tempC.toFixed(1)} °C (5-sample mean)`,
+      meta: 'Rule: ≥ 38.0 °C → same-day review',
+      tone: tempTone,
     },
     {
       id: 'calf',
-      kicker: 'Calf temp',
-      body: last ? `${last.calfTempC.toFixed(1)} °C · ${signed(calfDelta!)} °C vs baseline (5-sample mean)` : 'No pod data yet.',
-      meta: 'Rule: +1.0 °C → 24 h review; with symptoms → DVT same-day',
-      tone: calfTone,
+      kicker: 'Clot watch',
+      body:
+        hr === undefined
+          ? none
+          : `HR ${Math.round(hr)} bpm · RR ${Math.round(respRate!)}/min · SpO₂ ${Math.round(spo2!)}%`,
+      meta: 'Rule: calf pain with swelling or warmth → same-day',
+      tone: cardioTone === 'alarm' ? 'alarm' : 'info',
     },
     {
       id: 'chest',
       kicker: 'Cardiorespiratory',
-      body: last ? `HR ${Math.round(hr!)} bpm · SpO₂ ${Math.round(spo2!)}% (5-sample mean)` : 'No pod data yet.',
-      meta: 'Rules: SpO₂ < 92 → emergency · HR > 100 → same-day',
+      body:
+        hr === undefined
+          ? none
+          : `HR ${Math.round(hr)} · BP ${Math.round(systolic!)}/${Math.round(diastolic!)} · RR ${Math.round(respRate!)} · SpO₂ ${Math.round(spo2!)}%`,
+      meta: 'Rules: SpO₂ < 92 → emergency · HR > 100, RR > 24, SBP < 90 or ≥ 180 → same-day',
       tone: cardioTone,
     },
   ];

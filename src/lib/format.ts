@@ -49,17 +49,18 @@ export const REASON_LABEL: Record<string, string> = {
   PE_SIGNS: 'Chest pain or shortness of breath',
   LOW_SPO2: 'SpO₂ below 92%',
   DVT_SIGNS: 'Calf pain with swelling/warmth (surgical side)',
-  CALF_WARMTH: 'Calf skin temp rising',
   INFECTION_SIGNS: 'Fever or incision redness + warmth',
-  INCISION_WARMTH: 'Incision skin temp +1.5 °C',
   PAIN_UNCONTROLLED: 'Pain ≥ 8 twice in a row',
   TACHYCARDIA: 'Heart rate > 100',
-  ROM_STALLED: 'Knee flexion not progressing',
+  FEVER: 'Temperature ≥ 38.0 °C',
+  TACHYPNEA: 'Respiratory rate > 24',
+  HYPOTENSION: 'Systolic BP < 90',
+  HYPERTENSION: 'Systolic BP ≥ 180',
 };
 
 export const SCENARIO_LABEL: Record<string, string> = {
-  normal: 'Normal recovery',
+  normal: 'Stable',
   dvt: 'Blood clot pattern',
   infection: 'Infection pattern',
-  stalled: 'Stalled range of motion',
+  fluid: 'Fluid overload pattern',
 };

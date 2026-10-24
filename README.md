@@ -72,7 +72,7 @@ The tests use mocked Meshy responses and do not upload photos or spend credits.
 
 ## Demo controls
 
-Nurse dashboard → "Demo controls": switch a patient's simulated pod to the blood clot, infection, or stalled range-of-motion pattern, or reset all demo data.
+Nurse dashboard → "Demo controls": switch a patient's simulated pod to the blood clot, infection, or fluid overload pattern, or reset all demo data. The pod reports the five standard vital signs: heart rate, blood pressure, respiratory rate, SpO₂, and temperature.
 
 ## Anatomy model
 

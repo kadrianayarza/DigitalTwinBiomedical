@@ -16,15 +16,16 @@ export const REASON_LABEL: Record<string, string> = {
   PE_SIGNS: 'Possible pulmonary embolism: chest pain or shortness of breath',
   LOW_SPO2: 'Oxygen saturation below 92%',
   DVT_SIGNS: 'Possible blood clot: calf pain with swelling or warmth on the surgical side',
-  CALF_WARMTH: 'Calf skin temperature rising on the surgical side',
   INFECTION_SIGNS: 'Possible infection: fever, or incision redness with warmth',
-  INCISION_WARMTH: 'Incision skin temperature 1.5 °C or more above baseline',
   PAIN_UNCONTROLLED: 'Pain 8/10 or higher on two check-ins in a row',
   TACHYCARDIA: 'Resting heart rate above 100 bpm',
-  ROM_STALLED: 'Knee flexion not progressing toward goal',
+  FEVER: 'Temperature 38.0 °C or higher',
+  TACHYPNEA: 'Respiratory rate above 24 breaths/min',
+  HYPOTENSION: 'Systolic blood pressure below 90 mmHg',
+  HYPERTENSION: 'Systolic blood pressure 180 mmHg or higher',
 };
 
-export const SCENARIOS = ['normal', 'dvt', 'infection', 'stalled'] as const;
+export const SCENARIOS = ['normal', 'dvt', 'infection', 'fluid'] as const;
 
 /** 'calf_r_posterior' -> 'right calf (back)'. Mirrors the client's regionLabel. */
 export function regionText(code: string): string {
@@ -40,9 +41,6 @@ export function regionText(code: string): string {
   }
   return `${base}${a ? ` (${faces[a] ?? a})` : ''}`;
 }
-
-export const INCISION_BASELINE_C = 34.3;
-export const CALF_BASELINE_C = 33.4;
 
 export type SymptomLike = {
   region: string;
@@ -85,12 +83,14 @@ export function symptomRules(
   return hits;
 }
 
+/** The five standard vital signs. */
 export type VitalLike = {
   hr: number;
+  systolic: number;
+  diastolic: number;
+  respRate: number;
   spo2: number;
-  incisionTempC: number;
-  calfTempC: number;
-  kneeFlexDeg: number;
+  tempC: number;
 };
 
 /** Rules over a recent window of vitals (newest last). */
@@ -102,63 +102,59 @@ export function vitalRules(window: VitalLike[]): RuleHit[] {
     recent.reduce((a, v) => a + f(v), 0) / recent.length;
   if (avg(v => v.spo2) < 92) hits.push({ code: 'LOW_SPO2', priority: 'emergency' });
   if (avg(v => v.hr) > 100) hits.push({ code: 'TACHYCARDIA', priority: 'same_day' });
-  if (avg(v => v.incisionTempC) - INCISION_BASELINE_C >= 1.5) {
-    hits.push({ code: 'INCISION_WARMTH', priority: 'same_day' });
-  }
-  if (avg(v => v.calfTempC) - CALF_BASELINE_C >= 1.0) {
-    hits.push({ code: 'CALF_WARMTH', priority: 'review_24h' });
-  }
-  if (window.length >= 40) {
-    const maxFlex = Math.max(...window.map(v => v.kneeFlexDeg));
-    if (maxFlex < 60) hits.push({ code: 'ROM_STALLED', priority: 'review_24h' });
-  }
+  if (avg(v => v.tempC) >= 38.0) hits.push({ code: 'FEVER', priority: 'same_day' });
+  if (avg(v => v.respRate) > 24) hits.push({ code: 'TACHYPNEA', priority: 'same_day' });
+  const systolic = avg(v => v.systolic);
+  if (systolic < 90) hits.push({ code: 'HYPOTENSION', priority: 'same_day' });
+  if (systolic >= 180) hits.push({ code: 'HYPERTENSION', priority: 'same_day' });
   return hits;
 }
 
 /** One simulated pod reading. `tick` advances every sim interval; `noise` is in [-1, 1). */
-export function simulateVitals(
-  scenario: string,
-  tick: number,
-  noise: () => number
-): VitalLike & { stepsDelta: number } {
+export function simulateVitals(scenario: string, tick: number, noise: () => number): VitalLike {
   const ramp = (start: number, len: number) =>
     Math.max(0, Math.min(1, (tick - start) / len));
-  // A short exercise session roughly every 30 ticks drives knee flexion up.
-  const phase = tick % 30;
-  const exercising = phase < 8;
-  const flexGoal = scenario === 'stalled' ? 55 : 88;
-  const flex = exercising
-    ? flexGoal * Math.sin((phase / 8) * Math.PI) + noise() * 3
-    : 8 + noise() * 2;
 
-  let hr = 74 + noise() * 3 + (exercising ? 12 : 0);
+  let hr = 74 + noise() * 3;
+  let systolic = 124 + noise() * 4;
+  let diastolic = 78 + noise() * 3;
+  let respRate = 15 + noise() * 1.2;
   let spo2 = 97 + noise() * 0.6;
-  let incision = INCISION_BASELINE_C + noise() * 0.15;
-  let calf = CALF_BASELINE_C + noise() * 0.15;
+  let tempC = 36.8 + noise() * 0.12;
 
   if (scenario === 'dvt') {
     const r = ramp(5, 40);
     hr += 30 * r;
+    respRate += 11 * r;
     spo2 -= 2.5 * r;
-    calf += 1.6 * r;
   } else if (scenario === 'infection') {
     const r = ramp(5, 45);
     hr += 22 * r;
-    incision += 2.3 * r;
+    respRate += 6 * r;
+    systolic -= 14 * r;
+    diastolic -= 8 * r;
+    tempC += 1.8 * r;
+  } else if (scenario === 'fluid') {
+    const r = ramp(5, 45);
+    hr += 16 * r;
+    respRate += 11 * r;
+    systolic += 28 * r;
+    diastolic += 12 * r;
+    spo2 -= 3 * r;
   }
 
   return {
     hr,
+    systolic,
+    diastolic,
+    respRate,
     spo2: Math.min(100, spo2),
-    incisionTempC: incision,
-    calfTempC: calf,
-    kneeFlexDeg: Math.max(0, flex),
-    stepsDelta: exercising ? 0 : Math.max(0, Math.round(3 + noise() * 3)),
+    tempC,
   };
 }
 
-export const TRIAGE_SYSTEM_PROMPT = `You are a clinical documentation assistant supporting an orthopedic follow-up nurse.
-Patients are recovering at home after total knee replacement. You receive structured check-in data, pod vitals, and the results of deterministic safety rules.
+export const TRIAGE_SYSTEM_PROMPT = `You are a clinical documentation assistant supporting a remote-monitoring follow-up nurse.
+Patients are being monitored at home for the condition listed in their record (for example, recovery after joint replacement or a chronic condition). You receive structured check-in data, pod vitals, and the results of deterministic safety rules.
 
 Your job:
 1. Draft an SBAR handoff (Situation, Background, Assessment, Recommendation) the nurse can approve or edit. Keep each section to 1-3 short sentences, written for a clinician.

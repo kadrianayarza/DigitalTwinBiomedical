@@ -1,16 +1,13 @@
-import type { VitalSample } from '../module_bindings/types';
+import type { VitalSign } from '../module_bindings/types';
 import { timeAgo } from '../lib/format';
 import { Sparkline } from './Sparkline';
 import { Panel } from './ui';
 
-export const INCISION_BASELINE_C = 34.3;
-export const CALF_BASELINE_C = 33.4;
-
-type Props = { vitals: readonly VitalSample[]; detailed?: boolean };
+type Props = { vitals: readonly VitalSign[]; detailed?: boolean };
 
 export function PodVitals({ vitals, detailed }: Props) {
   const last = vitals[vitals.length - 1];
-  const series = (f: (v: VitalSample) => number) => vitals.slice(-60).map(f);
+  const series = (f: (v: VitalSign) => number) => vitals.slice(-60).map(f);
   const fmt = (n: number | undefined, digits = 0) => (n === undefined ? '–' : n.toFixed(digits));
 
   const tiles = [
@@ -25,6 +22,26 @@ export function PodVitals({ vitals, detailed }: Props) {
       max: 125,
     },
     {
+      label: 'Blood pressure',
+      value: last ? `${last.systolic.toFixed(0)}/${last.diastolic.toFixed(0)}` : '–',
+      unit: 'mmHg',
+      values: series(v => v.systolic),
+      color: '#b48cff',
+      alarm: last ? last.systolic < 90 || last.systolic >= 180 : false,
+      min: 80,
+      max: 190,
+    },
+    {
+      label: 'Respiratory rate',
+      value: fmt(last?.respRate),
+      unit: '/min',
+      values: series(v => v.respRate),
+      color: '#22b573',
+      alarm: (last?.respRate ?? 0) > 24,
+      min: 8,
+      max: 32,
+    },
+    {
       label: 'SpO₂',
       value: fmt(last?.spo2),
       unit: '%',
@@ -35,45 +52,15 @@ export function PodVitals({ vitals, detailed }: Props) {
       max: 100,
     },
     {
-      label: 'Incision temp',
-      value: fmt(last?.incisionTempC, 1),
+      label: 'Temperature',
+      value: fmt(last?.tempC, 1),
       unit: '°C',
-      values: series(v => v.incisionTempC),
+      values: series(v => v.tempC),
       color: '#ff8a2a',
-      baseline: INCISION_BASELINE_C,
-      alarm: (last?.incisionTempC ?? 0) - INCISION_BASELINE_C >= 1.5,
-      min: 33.5,
-      max: 37.5,
-    },
-    {
-      label: 'Calf temp',
-      value: fmt(last?.calfTempC, 1),
-      unit: '°C',
-      values: series(v => v.calfTempC),
-      color: '#b48cff',
-      baseline: CALF_BASELINE_C,
-      alarm: (last?.calfTempC ?? 0) - CALF_BASELINE_C >= 1.0,
-      min: 32.5,
-      max: 35.5,
-    },
-    {
-      label: 'Knee bend',
-      value: fmt(last?.kneeFlexDeg),
-      unit: '°',
-      values: series(v => v.kneeFlexDeg),
-      color: '#5cff9d',
-      baseline: 90,
-      alarm: false,
-      min: 0,
-      max: 100,
-    },
-    {
-      label: 'Steps',
-      value: last ? last.steps.toLocaleString() : '–',
-      unit: '',
-      values: series(v => v.steps),
-      color: '#c9ced8',
-      alarm: false,
+      alarm: (last?.tempC ?? 0) >= 38,
+      min: 35.5,
+      max: 39.5,
+      wide: true,
     },
   ];
 
@@ -85,7 +72,11 @@ export function PodVitals({ vitals, detailed }: Props) {
     >
       <div className="pod__grid">
         {tiles.map(t => (
-          <div key={t.label} className={`tile ${t.alarm ? 'tile--alarm' : ''}`} style={{ '--tile': t.color } as React.CSSProperties}>
+          <div
+            key={t.label}
+            className={`tile ${t.alarm ? 'tile--alarm' : ''} ${t.wide ? 'tile--wide' : ''}`}
+            style={{ '--tile': t.color } as React.CSSProperties}
+          >
             <div className="tile__label">
               {t.label}
               {t.alarm && <span className="tile__warn">Check</span>}
@@ -94,7 +85,7 @@ export function PodVitals({ vitals, detailed }: Props) {
               {t.value}
               <span className="tile__unit">{t.unit}</span>
             </div>
-            <Sparkline values={t.values} color={t.color} baseline={t.baseline} min={t.min} max={t.max} />
+            <Sparkline values={t.values} color={t.color} min={t.min} max={t.max} />
           </div>
         ))}
       </div>

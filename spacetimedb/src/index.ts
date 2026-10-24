@@ -9,8 +9,6 @@ import {
 import { ScheduleAt, TimeDuration, Timestamp, type Identity } from 'spacetimedb';
 import { MeshyError, pollMeshyTask, submitMeshyTask, type MeshyFetch } from './meshy';
 import {
-  CALF_BASELINE_C,
-  INCISION_BASELINE_C,
   REASON_LABEL,
   SCENARIOS,
   TRIAGE_SYSTEM_PROMPT,
@@ -58,7 +56,7 @@ const simState = table(
     patientId: t.u64().primaryKey(),
     scenario: t.string(),
     tick: t.u32(),
-    steps: t.u32(),
+    steps: t.u32(), // legacy column retained to avoid a destructive table migration
   }
 );
 
@@ -90,6 +88,24 @@ const symptomEntry = table(
   }
 );
 
+/** Five standard vital signs from the simulated Twin Pod. */
+const vitalSign = table(
+  { name: 'vital_sign', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    patientId: t.u64().index('btree'),
+    ts: t.timestamp(),
+    hr: t.f32(),
+    systolic: t.f32(),
+    diastolic: t.f32(),
+    respRate: t.f32(),
+    spo2: t.f32(),
+    tempC: t.f32(),
+    source: t.string(), // 'sim' | 'phone'
+  }
+);
+
+// Legacy knee-specific pod table, no longer written; retained to avoid a destructive migration.
 const vitalSample = table(
   { name: 'vital_sample', public: true },
   {
@@ -219,6 +235,7 @@ const spacetimedb = schema(
     patient,
     simState,
     symptomEntry,
+    vitalSign,
     vitalSample,
     alert,
     sbarReport,
@@ -357,7 +374,7 @@ function raiseAlerts(ctx: Ctx, patientId: bigint, hits: RuleHit[]) {
 }
 
 function recentVitals(ctx: Ctx, patientId: bigint) {
-  return [...ctx.db.vitalSample.patientId.filter(patientId)].sort((a, b) =>
+  return [...ctx.db.vitalSign.patientId.filter(patientId)].sort((a, b) =>
     a.ts.microsSinceUnixEpoch < b.ts.microsSinceUnixEpoch ? -1 : 1
   );
 }
@@ -376,8 +393,8 @@ function seedPatients(ctx: Ctx) {
   const now = ctx.timestamp.microsSinceUnixEpoch;
   const seed: Array<[string, number, string, string, bigint, string]> = [
     ['Kadrian Ayarza', 67, 'Total knee replacement', 'right', 5n, 'normal'],
-    ['Robert Alvarez', 72, 'Total knee replacement', 'left', 12n, 'stalled'],
-    ['Grace Okafor', 59, 'Heart failure monitoring', 'right', 3n, 'normal'],
+    ['Robert Alvarez', 72, 'Total knee replacement', 'left', 12n, 'normal'],
+    ['Grace Okafor', 59, 'Heart failure monitoring', 'right', 3n, 'fluid'],
     ['Tom Becker', 70, 'Diabetic foot wound care', 'left', 2n, 'normal'],
     ['Mei Lin Wu', 64, 'COPD monitoring', 'right', 8n, 'normal'],
   ];
@@ -398,6 +415,7 @@ function seedPatients(ctx: Ctx) {
 
 function clearClinicalData(ctx: Ctx) {
   for (const r of ctx.db.symptomEntry.iter()) ctx.db.symptomEntry.id.delete(r.id);
+  for (const r of ctx.db.vitalSign.iter()) ctx.db.vitalSign.id.delete(r.id);
   for (const r of ctx.db.vitalSample.iter()) ctx.db.vitalSample.id.delete(r.id);
   for (const r of ctx.db.alert.iter()) ctx.db.alert.id.delete(r.id);
   for (const r of ctx.db.sbarReport.iter()) ctx.db.sbarReport.id.delete(r.id);
@@ -804,7 +822,7 @@ export const resetDemo = spacetimedb.reducer(ctx => {
   for (const s of ctx.db.simState.iter()) {
     ctx.db.simState.patientId.update({
       ...s,
-      scenario: s.scenario === 'stalled' ? 'stalled' : 'normal',
+      scenario: s.scenario === 'fluid' ? 'fluid' : 'normal',
       tick: 0,
       steps: 0,
     });
@@ -819,24 +837,12 @@ export const simTick = spacetimedb.reducer(
     for (const s of ctx.db.simState.iter()) {
       const tick = s.tick + 1;
       const v = simulateVitals(s.scenario, tick, noise);
-      const steps = s.steps + v.stepsDelta;
-      ctx.db.simState.patientId.update({ ...s, tick, steps });
-      ctx.db.vitalSample.insert({
-        id: 0n,
-        patientId: s.patientId,
-        ts: ctx.timestamp,
-        hr: v.hr,
-        spo2: v.spo2,
-        incisionTempC: v.incisionTempC,
-        calfTempC: v.calfTempC,
-        kneeFlexDeg: v.kneeFlexDeg,
-        steps,
-        source: 'sim',
-      });
+      ctx.db.simState.patientId.update({ ...s, tick });
+      ctx.db.vitalSign.insert({ id: 0n, patientId: s.patientId, ts: ctx.timestamp, ...v, source: 'sim' });
 
       const window = recentVitals(ctx, s.patientId);
       for (const old of window.slice(0, Math.max(0, window.length - VITALS_KEPT_PER_PATIENT))) {
-        ctx.db.vitalSample.id.delete(old.id);
+        ctx.db.vitalSign.id.delete(old.id);
       }
       if (tick % 5 === 0) {
         raiseAlerts(ctx, s.patientId, vitalRules(window.slice(-60)));
@@ -915,7 +921,7 @@ function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
         age: p.age,
         procedure: p.procedure,
         side: p.side,
-        days_since_surgery: day,
+        days_since_monitoring_start: day,
       },
       rule_results: {
         priority_floor: a.priority,
@@ -925,12 +931,11 @@ function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
       pod_vitals_last_2_minutes: {
         note: 'Simulated Twin Pod data for the prototype',
         heart_rate_bpm: stat(v => v.hr),
+        systolic_bp_mmhg: stat(v => v.systolic),
+        diastolic_bp_mmhg: stat(v => v.diastolic),
+        respiratory_rate_per_min: stat(v => v.respRate),
         spo2_pct: stat(v => v.spo2),
-        incision_skin_temp_c: stat(v => v.incisionTempC),
-        incision_baseline_c: INCISION_BASELINE_C,
-        calf_skin_temp_c: stat(v => v.calfTempC),
-        calf_baseline_c: CALF_BASELINE_C,
-        knee_flexion_deg: stat(v => v.kneeFlexDeg),
+        temperature_c: stat(v => v.tempC),
       },
     },
     null,
@@ -940,10 +945,10 @@ function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
   const latest = symptoms[0];
   const fallback: TriageResult = {
     priority: a.priority === 'emergency' ? 'same_day' : a.priority,
-    situation: `${p.name}, day ${day} after ${p.side} ${p.procedure.toLowerCase()}. Rules flagged: ${codes
+    situation: `${p.name}, day ${day} of home monitoring for ${p.procedure.toLowerCase()}. Rules flagged: ${codes
       .map(c => REASON_LABEL[c] ?? c)
       .join('; ')}.`,
-    background: `${p.age}-year-old recovering at home. ${symptoms.length} recent check-in(s).`,
+    background: `${p.age}-year-old monitored at home. ${symptoms.length} recent check-in(s).`,
     assessment: latest
       ? `Most recent report: ${latest.quality || 'pain'} at ${latest.region}, ${latest.severity}/10.`
       : 'Flag raised from pod vitals; no recent symptom report.',

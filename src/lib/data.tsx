@@ -7,7 +7,7 @@ function useAllTables() {
   const [patients, patientsReady] = useTable(tables.patient);
   const [profiles] = useTable(tables.userProfile);
   const [symptoms] = useTable(tables.symptomEntry);
-  const [vitals] = useTable(tables.vitalSample);
+  const [vitals] = useTable(tables.vitalSign);
   const [alerts] = useTable(tables.alert);
   const [reports] = useTable(tables.sbarReport);
   const [audit] = useTable(tables.auditEvent);

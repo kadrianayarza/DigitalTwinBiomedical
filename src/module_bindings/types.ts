@@ -169,3 +169,17 @@ export const VitalSample = __t.object("VitalSample", {
 });
 export type VitalSample = __Infer<typeof VitalSample>;
 
+export const VitalSign = __t.object("VitalSign", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  ts: __t.timestamp(),
+  hr: __t.f32(),
+  systolic: __t.f32(),
+  diastolic: __t.f32(),
+  respRate: __t.f32(),
+  spo2: __t.f32(),
+  tempC: __t.f32(),
+  source: __t.string(),
+});
+export type VitalSign = __Infer<typeof VitalSign>;
+

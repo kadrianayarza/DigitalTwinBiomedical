@@ -62,6 +62,7 @@ import SymptomEntryRow from "./symptom_entry_table";
 import TwinStatusRow from "./twin_status_table";
 import UserProfileRow from "./user_profile_table";
 import VitalSampleRow from "./vital_sample_table";
+import VitalSignRow from "./vital_sign_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -196,6 +197,20 @@ const tablesSchema = __schema({
       { name: 'vital_sample_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, VitalSampleRow),
+  vitalSign: __table({
+    name: 'vital_sign',
+    indexes: [
+      { accessor: 'id', name: 'vital_sign_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'vital_sign_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'vital_sign_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, VitalSignRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */

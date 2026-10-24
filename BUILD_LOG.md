@@ -54,6 +54,11 @@ Screenshots: _add here_
 - Verified in the browser: the photo twin renders on the patient view with hotspots anchored to it, credit "Personal scan · Meshy image-to-3D". The signed asset URL expires in 3 days; regenerate shortly before the demo or mirror the file locally.
 - Set up git worktrees (`agents/cursor`, `agents/droid`, `agents/kadrian`) with branches and dependencies installed for parallel agent work.
 
+**~5:00 PM PT — Broader patients and standard vitals**
+- Demo patients now span knee replacement, heart failure, diabetic foot wound care, and COPD; every screen labels them from the stored condition.
+- The Twin Pod reports the five standard vital signs (heart rate, blood pressure, respiratory rate, SpO₂, temperature) in a new `vital_sign` table, replacing knee bend, steps, and incision/calf skin temperature. Red-flag rules now cover low SpO₂, tachycardia, fever, tachypnea, and low or very high systolic pressure. Demo patterns: blood clot, infection, fluid overload.
+- Hardened the dev-server asset proxy so an aborted model download can no longer crash Vite.
+
 ## To log next
 
 - [ ] Grok Bot planning thread (screenshot)
