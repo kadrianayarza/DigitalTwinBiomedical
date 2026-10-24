@@ -1,5 +1,6 @@
-import { Component, useEffect, useLayoutEffect, useMemo, type ReactNode } from 'react';
+import { Component, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import landmarkData from './anatomy-landmarks.json';
@@ -115,7 +116,9 @@ function readGltf(url: string): LoadState {
     const promise = new Promise<LoadResult>(resolve => {
       // Always resolve: a loader failure must never escape as an uncaught async
       // error, which would break the R3F render loop for the whole scene.
-      new GLTFLoader().load(url, gltf => resolve({ gltf: gltf.scene }), undefined, () => resolve({ failed: true }));
+      new GLTFLoader()
+        .setMeshoptDecoder(MeshoptDecoder)
+        .load(url, gltf => resolve({ gltf: gltf.scene }), undefined, () => resolve({ failed: true }));
     });
     const created: { current: LoadState } = { current: { status: 'pending', promise } };
     promise.then(result => {
@@ -125,6 +128,23 @@ function readGltf(url: string): LoadState {
     cell = created;
   }
   return cell.current;
+}
+
+/** Starts loading a GLB without suspending and re-renders once it settles. */
+export function useGltfStatus(url: string | undefined): 'idle' | 'loading' | 'ready' | 'failed' {
+  const [, settled] = useState(0);
+  const entry = url ? readGltf(url) : undefined;
+  useEffect(() => {
+    if (entry?.status !== 'pending') return;
+    let live = true;
+    void entry.promise.then(() => live && settled(n => n + 1));
+    return () => {
+      live = false;
+    };
+  }, [entry]);
+  if (!entry) return 'idle';
+  if (entry.status === 'pending') return 'loading';
+  return 'failed' in entry.result ? 'failed' : 'ready';
 }
 
 /** Suspends until the GLB settles; load failures come back as `{ failed: true }`. */

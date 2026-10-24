@@ -16,6 +16,7 @@ import {
   regionForPoint,
   snapAnchors,
   useAnatomy,
+  useGltfStatus,
 } from './anatomy';
 import type { HotspotTone, TwinHotspot } from './hotspots';
 import { createGroundShadowTexture, createTwinMaterials, setTwinMaterialMode, type TwinMaterials } from './materials';
@@ -74,16 +75,20 @@ export function TwinViewer(props: Props) {
   const [focusNonce, setFocusNonce] = useState(0);
   const [openSpot, setOpenSpot] = useState<HotspotId | null>(null);
   const [skinKind, setSkinKind] = useState<SkinKind>('anatomy');
+  // Show the inside view as the placeholder while a personal scan downloads.
+  const scanLoading = useGltfStatus(props.twinUrl ? proxiedTwinUrl(props.twinUrl) : undefined) === 'loading';
+  const view: Mode = scanLoading ? 'inside' : mode;
 
-  const credit =
-    mode === 'inside' || skinKind === 'anatomy'
+  const credit = scanLoading
+    ? `Loading your scan · ${ANATOMY_CREDIT}`
+    : view === 'inside' || skinKind === 'anatomy'
       ? ANATOMY_CREDIT
       : skinKind === 'scan'
         ? 'Personal scan · Meshy image-to-3D · shape is approximate'
         : 'Reference exterior · Meshy image-to-3D';
 
   return (
-    <div className={`twin twin--${mode} ${props.compact ? 'twin--compact' : ''}`}>
+    <div className={`twin twin--${view} ${props.compact ? 'twin--compact' : ''}`}>
       <div className="twin__viewport">
         <Canvas
           dpr={[1, 2]}
@@ -93,7 +98,7 @@ export function TwinViewer(props: Props) {
           <Suspense fallback={null}>
             <Scene
               {...props}
-              mode={mode}
+              mode={view}
               layers={layers}
               focus={focus}
               focusNonce={focusNonce}
@@ -107,13 +112,13 @@ export function TwinViewer(props: Props) {
 
       <div className="twin__hud" aria-hidden>
         <span className="twin__hudlabel">
-          Twin · {mode === 'outside' ? 'Exterior' : 'Interior'}
-          <em>{mode === 'outside' && skinKind !== 'anatomy' ? 'Meshy' : 'Anatomy'}</em>
+          Twin · {view === 'outside' ? 'Exterior' : 'Interior'}
+          <em>{view === 'outside' && skinKind !== 'anatomy' ? 'Meshy' : 'Anatomy'}</em>
         </span>
       </div>
 
       <div className="twin__dock">
-        {mode === 'inside' && (
+        {view === 'inside' && (
           <div className="legend" role="group" aria-label="Anatomy layers">
             {LAYERS.map(l => (
               <button
