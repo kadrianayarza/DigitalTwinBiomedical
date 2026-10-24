@@ -270,7 +270,7 @@ function PatientDetail({
         </Panel>
 
         <details className="panel demo">
-          <summary>Demo controls</summary>
+          <summary>Controls</summary>
           <div className="demo__row">
             <span className="small muted">Simulated pod pattern for {patient.name.split(' ')[0]}</span>
             <div className="chips">
@@ -292,7 +292,7 @@ function PatientDetail({
               if (confirm('Clear all check-ins, alerts, reports, and vitals?')) void resetDemo();
             }}
           >
-            Reset demo data
+            Reset data
           </button>
         </details>
       </aside>
