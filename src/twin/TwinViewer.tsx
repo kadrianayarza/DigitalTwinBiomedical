@@ -59,7 +59,7 @@ const LAYERS: Array<{ id: Layer; label: string; color: string }> = [
   { id: 'implant', label: 'Implant', color: '#3ad7ff' },
 ];
 
-const ORANGE = '#f26b0f';
+const ACCENT = '#1a73e8';
 
 export function TwinViewer(props: Props) {
   const [mode, setMode] = useState<Mode>(props.initialMode ?? 'outside');
@@ -236,7 +236,7 @@ function Scene({
 
   return (
     <>
-      <color attach="background" args={[inside ? '#f7f1ec' : '#eef0f4']} />
+      <color attach="background" args={[inside ? '#eef4f7' : '#eef0f4']} />
       <hemisphereLight args={['#ffffff', '#c9c3ba', inside ? 0.5 : 0.95]} />
       <directionalLight position={[1.5, 3, 3]} intensity={inside ? 1.1 : 2.0} color="#fff8f0" />
       <directionalLight position={[-3, 2, -2.5]} intensity={inside ? 1.4 : 0.7} color="#ffd9b8" />
@@ -296,10 +296,10 @@ function Platform() {
         args={[8, 8]}
         cellSize={0.1}
         cellThickness={0.5}
-        cellColor="#cfc9bd"
+        cellColor="#ccd2da"
         sectionSize={0.5}
         sectionThickness={0.9}
-        sectionColor="#e3b78d"
+        sectionColor="#a8c7f0"
         fadeDistance={5.5}
         fadeStrength={2.2}
         infiniteGrid
@@ -312,13 +312,13 @@ function Platform() {
       <group rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
         <mesh raycast={noRaycast}>
           <ringGeometry args={[0.44, 0.447, 128]} />
-          <meshBasicMaterial color={ORANGE} transparent opacity={0.8} depthWrite={false} />
+          <meshBasicMaterial color={ACCENT} transparent opacity={0.8} depthWrite={false} />
         </mesh>
         <group ref={arcs}>
           {[0, 1, 2].map(i => (
             <mesh key={i} rotation={[0, 0, (i * Math.PI * 2) / 3]} raycast={noRaycast}>
               <ringGeometry args={[0.49, 0.5, 48, 1, 0, Math.PI / 3]} />
-              <meshBasicMaterial color={ORANGE} transparent opacity={0.45} depthWrite={false} />
+              <meshBasicMaterial color={ACCENT} transparent opacity={0.45} depthWrite={false} />
             </mesh>
           ))}
         </group>
@@ -554,7 +554,7 @@ function PulseRing({ color, speed = 0.7 }: { color: string; speed?: number }) {
 
 function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onSelect?: (id: string) => void }) {
   const [hover, setHover] = useState(false);
-  const color = pin.pending ? ORANGE : severityColor(pin.severity);
+  const color = pin.pending ? ACCENT : severityColor(pin.severity);
 
   return (
     <group position={[pin.x, pin.y, pin.z]}>

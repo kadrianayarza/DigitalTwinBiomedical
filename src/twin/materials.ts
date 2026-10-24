@@ -4,7 +4,7 @@ import * as THREE from 'three';
 function createGlassSkin() {
   return new THREE.ShaderMaterial({
     uniforms: {
-      rim: { value: new THREE.Color('#e06208') },
+      rim: { value: new THREE.Color('#1a73e8') },
       core: { value: new THREE.Color('#0891b2') },
       opacity: { value: 0.9 },
     },
