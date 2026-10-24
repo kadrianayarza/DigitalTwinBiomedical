@@ -10,6 +10,11 @@ export const ANATOMY_CREDIT = 'BodyParts3D © DBCLS · CC BY-SA 2.1 JP';
 /** Reference exterior made with Meshy image-to-3D from a generated photo of a fictional person. */
 export const EXTERIOR_URL = '/models/exterior.glb';
 
+/** Provider asset hosts send no CORS headers; load their GLBs through the same-origin proxy. */
+export function proxiedTwinUrl(url: string): string {
+  return /^https:\/\/([\w-]+\.)*meshy\.ai\//i.test(url) ? `/twin-proxy?url=${encodeURIComponent(url)}` : url;
+}
+
 export type AnatomyLayer = 'skin' | 'muscle' | 'bone' | 'artery' | 'vein';
 type Vec3 = [number, number, number];
 type Box = { min: Vec3; max: Vec3; center: Vec3 };

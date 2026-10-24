@@ -45,7 +45,21 @@ Screenshots: _add here_
 - Set Google Sans as the single UI face (dropped the artificial condensation and mono styling on labels; Google Sans Code stays for numeric readouts and the audit trail).
 - Removed the live/offline dashboard indicator.
 
+**~4:30 PM PT — Photo twin works end to end (with a real photo)**
+- Published the module to SpacetimeDB Maincloud (`maincloud.spacetimedb.com`) after refreshing the CLI login; local server unchanged.
+- Generated a real person's 3D twin from a full-body photo through Meshy's image-to-3D API. Three bugs found and fixed along the way:
+  1. `new URL()` throws for every input inside the SpacetimeDB server sandbox, so the job always rejected the finished asset. Replaced with structural URL validation (https + `assets.meshy.ai` host + no credentials) that works in any runtime.
+  2. The GLB may come back in `model_urls.glb` or `model_url` depending on the API version; the extractor now accepts both.
+  3. Meshy's asset CDN sends no CORS headers, so the browser cannot load the GLB directly. Added a same-origin dev-server proxy (`/twin-proxy`, allowlisted to Meshy's asset host) and the viewer routes provider URLs through it. A production deployment needs the same proxy as an edge function.
+- Verified in the browser: the photo twin renders on the patient view with hotspots anchored to it, credit "Personal scan · Meshy image-to-3D". The signed asset URL expires in 3 days; regenerate shortly before the demo or mirror the file locally.
+- Set up git worktrees (`agents/cursor`, `agents/droid`, `agents/kadrian`) with branches and dependencies installed for parallel agent work.
+
 ## To log next
+
+- [ ] Grok Bot planning thread (screenshot)
+- [ ] First real Claude SBAR vs. template
+- [ ] 20-case triage eval vs. nursing lead labels
+
 - [ ] Grok Bot planning thread (screenshot)
 - [ ] First real Claude SBAR vs. template
 - [ ] 20-case triage eval vs. nursing lead labels

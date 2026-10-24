@@ -12,6 +12,7 @@ import {
   PhotoSkin,
   Shorts,
   kneeTarget,
+  proxiedTwinUrl,
   regionForPoint,
   snapAnchors,
   useAnatomy,
@@ -403,12 +404,12 @@ function RealBody({
     twinUrl && !failedUrls[twinUrl] ? (
       <ModelBoundary resetKey={twinUrl} fallback={reference}>
         <Suspense fallback={reference}>
-          <PhotoSkin
-            url={twinUrl}
-            height={height}
-            onReady={onScan}
-            onError={() => twinUrl && onFail(twinUrl)}
-          />
+        <PhotoSkin
+          url={proxiedTwinUrl(twinUrl)}
+          height={height}
+          onReady={onScan}
+          onError={() => twinUrl && onFail(twinUrl)}
+        />
         </Suspense>
       </ModelBoundary>
     ) : null;
