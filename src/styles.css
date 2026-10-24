@@ -510,9 +510,10 @@ textarea:disabled {
 .landing__hero {
   width: min(1320px, 100%);
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  grid-template-columns: minmax(0, max-content) minmax(300px, 380px);
+  justify-content: center;
   align-items: center;
-  gap: clamp(16px, 3vw, 48px);
+  gap: clamp(8px, 1.5vw, 24px);
 }
 .landing__copy {
   display: flex;
