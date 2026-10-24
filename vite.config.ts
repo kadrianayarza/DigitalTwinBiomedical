@@ -15,36 +15,53 @@ function twinAssetProxy() {
     name: 'twin-asset-proxy',
     configureServer(server: ViteDevServer) {
       server.middlewares.use('/twin-proxy', (req, res) => {
-        const query = new globalThis.URL(req.url ?? '', 'http://localhost').searchParams;
-        const target = query.get('url');
-        const ok =
-          target &&
-          /^https:\/\//i.test(target) &&
-          ALLOWED_HOSTS.has(new globalThis.URL(target).host) &&
-          !/[\s<>]/.test(target);
-        if (!ok) {
-          res.statusCode = 400;
-          res.end('Blocked');
+        const fail = (status: number, message: string) => {
+          if (res.writableEnded) return;
+          if (res.headersSent) {
+            res.destroy();
+            return;
+          }
+          res.statusCode = status;
+          res.end(message);
+        };
+
+        let target: string | null = null;
+        try {
+          const candidate = new globalThis.URL(req.url ?? '', 'http://localhost').searchParams.get('url');
+          if (
+            candidate &&
+            !/[\s<>]/.test(candidate) &&
+            new globalThis.URL(candidate).protocol === 'https:' &&
+            ALLOWED_HOSTS.has(new globalThis.URL(candidate).host)
+          ) {
+            target = candidate;
+          }
+        } catch {
+          target = null;
+        }
+        if (!target) {
+          fail(400, 'Blocked');
           return;
         }
-        https
-          .get(
-            target,
-            { headers: { 'accept-encoding': 'identity' } },
-            upstream => {
-            res.statusCode = upstream.statusCode ?? 502;
-            const headers = { ...upstream.headers };
-            delete headers['content-encoding'];
-            delete headers['content-length'];
-            delete headers['transfer-encoding'];
-            res.setHeader('content-type', headers['content-type'] ?? 'model/gltf-binary');
-            res.setHeader('access-control-allow-origin', '*');
-            upstream.pipe(res);
-          })
-          .on('error', () => {
-            res.statusCode = 502;
-            res.end('Upstream error');
-          });
+
+        // Unhandled 'error' events on either stream would take down the whole dev server.
+        const upstreamReq = https.get(target, { headers: { 'accept-encoding': 'identity' } }, upstream => {
+          upstream.on('error', () => fail(502, 'Upstream error'));
+          if (res.writableEnded || res.destroyed) {
+            upstream.destroy();
+            return;
+          }
+          res.statusCode = upstream.statusCode ?? 502;
+          res.setHeader('content-type', upstream.headers['content-type'] ?? 'model/gltf-binary');
+          res.setHeader('access-control-allow-origin', '*');
+          upstream.pipe(res);
+        });
+        upstreamReq.setTimeout(60_000, () => upstreamReq.destroy(new Error('timeout')));
+        upstreamReq.on('error', () => fail(502, 'Upstream error'));
+        res.on('error', () => upstreamReq.destroy());
+        res.on('close', () => {
+          if (!res.writableFinished) upstreamReq.destroy();
+        });
       });
     },
   };
