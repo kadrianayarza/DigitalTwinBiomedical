@@ -945,7 +945,7 @@ function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
   const latest = symptoms[0];
   const fallback: TriageResult = {
     priority: a.priority === 'emergency' ? 'same_day' : a.priority,
-    situation: `${p.name}, day ${day} of home monitoring for ${p.procedure.toLowerCase()}. Rules flagged: ${codes
+    situation: `${p.name}, day ${day} at home (${p.procedure.toLowerCase()}). Rules flagged: ${codes
       .map(c => REASON_LABEL[c] ?? c)
       .join('; ')}.`,
     background: `${p.age}-year-old monitored at home. ${symptoms.length} recent check-in(s).`,
