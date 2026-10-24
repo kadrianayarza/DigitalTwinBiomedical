@@ -185,9 +185,7 @@ function PatientDetail({
               onHover={onHover}
               twinUrl={patient.twinUrl}
               seated={usesWheelchair(patient)}
-              hotspots={buildHotspots({ vitals, audience: 'nurse' })}
-              initialFocus={/knee/i.test(patient.procedure) ? 'knee' : 'body'}
-              compact
+              hotspots={buildHotspots({ vitals, audience: 'nurse' })}              compact
             />
           </div>
           <Panel title="Check-ins" code={`${symptoms.length} total`} className="detail__timeline">

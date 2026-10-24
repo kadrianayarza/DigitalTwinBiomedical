@@ -1014,6 +1014,19 @@ textarea:disabled {
   color: var(--accent-ink);
   box-shadow: 0 4px 18px rgba(26, 115, 232, 0.4);
 }
+.twin--compact .seg {
+  padding: 2px;
+  border-radius: 8px;
+}
+.twin--compact .seg__btn {
+  min-height: 28px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+.twin--compact .seg--mode .seg__btn--on {
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35);
+}
 .legend {
   display: flex;
   flex-wrap: wrap;

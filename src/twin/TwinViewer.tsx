@@ -144,21 +144,23 @@ export function TwinViewer(props: Props) {
           </div>
         )}
         <div className="twin__controls">
-          <div className="seg" role="group" aria-label="Camera focus">
-            {(['body', 'knee'] as const).map(f => (
-              <button
-                key={f}
-                className={focus === f ? 'seg__btn seg__btn--on' : 'seg__btn'}
-                aria-pressed={focus === f}
-                onClick={() => {
-                  setFocus(f);
-                  setFocusNonce(n => n + 1);
-                }}
-              >
-                {f === 'body' ? 'Full body' : 'Knee'}
-              </button>
-            ))}
-          </div>
+          {!props.compact && (
+            <div className="seg" role="group" aria-label="Camera focus">
+              {(['body', 'knee'] as const).map(f => (
+                <button
+                  key={f}
+                  className={focus === f ? 'seg__btn seg__btn--on' : 'seg__btn'}
+                  aria-pressed={focus === f}
+                  onClick={() => {
+                    setFocus(f);
+                    setFocusNonce(n => n + 1);
+                  }}
+                >
+                  {f === 'body' ? 'Full body' : 'Knee'}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="seg seg--mode" role="group" aria-label="View">
             {(['outside', 'inside'] as const).map(m => (
               <button
