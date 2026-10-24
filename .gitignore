@@ -7,3 +7,4 @@ dist
 spacetime.local.json
 
 .env*.local
+*.tsbuildinfo
