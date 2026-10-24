@@ -375,7 +375,7 @@ function seedPatients(ctx: Ctx) {
   if (ctx.db.patient.count() > 0n) return;
   const now = ctx.timestamp.microsSinceUnixEpoch;
   const seed: Array<[string, number, string, bigint, string]> = [
-    ['Linda Chen', 67, 'right', 5n, 'normal'],
+    ['Kadrian Ayarza', 67, 'right', 5n, 'normal'],
     ['Robert Alvarez', 72, 'left', 12n, 'stalled'],
     ['Grace Okafor', 59, 'right', 3n, 'normal'],
     ['Tom Becker', 70, 'left', 2n, 'normal'],
