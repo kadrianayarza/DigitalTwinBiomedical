@@ -43,7 +43,6 @@ function Landing() {
             <span className="choice__desc">Open the follow-up console</span>
           </button>
         </div>
-        <p className="fineprint">Prototype with fictional patients. Not a medical device.</p>
       </main>
     </div>
   );
