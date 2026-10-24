@@ -8,8 +8,9 @@ import { SKIN, regionForHit, type HotspotId, type Part } from './bodyModel';
 
 export const ANATOMY_URL = '/models/anatomy.glb';
 export const ANATOMY_CREDIT = 'BodyParts3D © DBCLS · CC BY-SA 2.1 JP';
-/** Reference exterior made with Meshy image-to-3D from a generated photo of a fictional person. */
+/** Reference outside body built by scripts/build-exterior.mjs. */
 export const EXTERIOR_URL = '/models/exterior.glb';
+export const EXTERIOR_CREDIT = 'Reference body · BodyParts3D © DBCLS · CC BY 4.0 · via Human Atlas';
 
 /** Provider asset hosts send no CORS headers; load their GLBs through the same-origin proxy. */
 export function proxiedTwinUrl(url: string): string {
@@ -37,20 +38,19 @@ export function useAnatomy(side: 'l' | 'r') {
   }, [gltf, side]);
 }
 
-// Quantized glTF positions are normalized ints with the scale on the node; bake to float.
+// Quantized glTF attributes are normalized ints with the scale on the node; bake to float.
 function toFloatGeometry(src: THREE.BufferGeometry, matrix: THREE.Matrix4) {
-  const pos = src.getAttribute('position');
-  const arr = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    arr[i * 3] = pos.getX(i);
-    arr[i * 3 + 1] = pos.getY(i);
-    arr[i * 3 + 2] = pos.getZ(i);
-  }
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  for (const name of ['position', 'normal']) {
+    const attr = src.getAttribute(name);
+    if (!attr) continue;
+    const arr = new Float32Array(attr.count * 3);
+    for (let i = 0; i < attr.count; i++) arr.set([attr.getX(i), attr.getY(i), attr.getZ(i)], i * 3);
+    g.setAttribute(name, new THREE.BufferAttribute(arr, 3));
+  }
   if (src.index) g.setIndex(Array.from(src.index.array as ArrayLike<number>));
   g.applyMatrix4(matrix);
-  g.computeVertexNormals();
+  if (!g.getAttribute('normal')) g.computeVertexNormals();
   g.computeBoundingSphere();
   return g;
 }
@@ -192,6 +192,57 @@ export function PhotoSkin({
     return wrap;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, failed, height]);
+  useLayoutEffect(() => {
+    if (object) onReady(object);
+  }, [object, onReady]);
+  if (failed || !object) return null;
+  return <primitive object={object} />;
+}
+
+/**
+ * Reference outside body (BodyParts3D skin, hair, brows and lips via Human Atlas).
+ * Built pre-aligned to anatomy.glb by scripts/build-exterior.mjs, so it is placed
+ * as-is; the skin gets the same clothing paint and material as the anatomy skin.
+ */
+export function ReferenceExterior({
+  side,
+  skin,
+  onReady,
+  onError,
+}: {
+  side: 'l' | 'r';
+  skin: THREE.Material;
+  onReady: (o: THREE.Object3D) => void;
+  onError: () => void;
+}) {
+  const load = useGltfSafe(EXTERIOR_URL);
+  const failed = 'failed' in load;
+  useEffect(() => {
+    if (failed) onError();
+  }, [failed, onError]);
+  const object = useMemo(() => {
+    if (failed) return null;
+    load.gltf.updateMatrixWorld(true);
+    const group = new THREE.Group();
+    load.gltf.traverse(o => {
+      const src = o as THREE.Mesh;
+      if (!src.isMesh) return;
+      const geometry = toFloatGeometry(src.geometry, src.matrixWorld);
+      const isSkin = src.name === 'skin';
+      if (isSkin) paintSkin(geometry, side);
+      const mesh = new THREE.Mesh(geometry, isSkin ? skin : src.material);
+      mesh.name = src.name;
+      mesh.castShadow = true;
+      mesh.userData.tappable = true;
+      mesh.renderOrder = 3;
+      group.add(mesh);
+    });
+    return group;
+  }, [load, failed, side, skin]);
+  useEffect(
+    () => () => object?.traverse(o => (o as THREE.Mesh).isMesh && (o as THREE.Mesh).geometry.dispose()),
+    [object]
+  );
   useLayoutEffect(() => {
     if (object) onReady(object);
   }, [object, onReady]);

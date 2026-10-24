@@ -6,10 +6,12 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { BONE, MUSCLE, SKIN, implantParts, regionForHit, regionLabel, type HotspotId, type Part } from './bodyModel';
 import {
   ANATOMY_CREDIT,
+  EXTERIOR_CREDIT,
   EXTERIOR_URL,
   Implant,
   ModelBoundary,
   PhotoSkin,
+  ReferenceExterior,
   Shorts,
   kneeTarget,
   proxiedTwinUrl,
@@ -85,7 +87,7 @@ export function TwinViewer(props: Props) {
       ? ANATOMY_CREDIT
       : skinKind === 'scan'
         ? 'Personal scan · Meshy image-to-3D · shape is approximate'
-        : 'Reference exterior · Meshy image-to-3D';
+        : EXTERIOR_CREDIT;
 
   return (
     <div className={`twin twin--${view} ${props.compact ? 'twin--compact' : ''}`}>
@@ -113,7 +115,7 @@ export function TwinViewer(props: Props) {
       <div className="twin__hud" aria-hidden>
         <span className="twin__hudlabel">
           Twin · {view === 'outside' ? 'Exterior' : 'Interior'}
-          <em>{view === 'outside' && skinKind !== 'anatomy' ? 'Meshy' : 'Anatomy'}</em>
+          <em>{view === 'outside' && skinKind === 'scan' ? 'Meshy' : view === 'outside' && skinKind === 'reference' ? 'Reference' : 'Anatomy'}</em>
         </span>
       </div>
 
@@ -395,13 +397,14 @@ function RealBody({
       <Shorts material={mats.shorts} />
     </>
   );
-  // Tier order for the Outside view: personal Meshy scan -> Meshy reference body -> anatomy skin.
+  // Tier order for the Outside view: personal Meshy scan -> Human Atlas reference body -> anatomy skin.
   const reference = failedUrls[EXTERIOR_URL] ? (
     anatomyOutside
   ) : (
     <ModelBoundary resetKey={EXTERIOR_URL} fallback={anatomyOutside}>
       <Suspense fallback={anatomyOutside}>
-        <PhotoSkin url={EXTERIOR_URL} height={height} onReady={onReference} onError={failExterior} />
+        <ReferenceExterior side={side} skin={mats.realSkin} onReady={onReference} onError={failExterior} />
+        <Shorts material={mats.shorts} />
       </Suspense>
     </ModelBoundary>
   );

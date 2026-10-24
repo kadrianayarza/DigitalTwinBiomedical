@@ -80,4 +80,13 @@ Nurse dashboard → "Demo controls": switch a patient's simulated pod to the blo
 
 If the GLB fails to load, the twin falls back to the procedural body in `src/twin/bodyModel.ts`.
 
+## Reference outside body
+
+Patients without a personal scan see `public/models/exterior.glb` (skin, scalp hair, eyebrows, lips; 485 KB, meshopt-compressed), taken from the BodyParts3D 4.0 packaging in [Human Atlas](https://github.com/ashemag/human-atlas). BodyParts3D © The Database Center for Life Science, [CC BY 4.0](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html); see `public/models/LICENSE-exterior.txt`. It is the same source body as `anatomy.glb` and is built pre-aligned to it, so hotspots and anatomy layers line up. To rebuild:
+
+```bash
+git clone --depth 1 https://github.com/ashemag/human-atlas.git ~/.cache/human-atlas
+npm run build:exterior
+```
+
 Prototype with fictional patients. Not a medical device.
