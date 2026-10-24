@@ -5,6 +5,7 @@ import { DataProvider, useData } from './lib/data';
 import { currentRole, goToRole, type Role } from './lib/role';
 import { careLabel, daysSince } from './lib/format';
 import { Brand } from './components/ui';
+import { useAdoptPatientParam } from './components/RoleSwitch';
 import { PatientView } from './patient/PatientView';
 import { NurseDashboard } from './nurse/NurseDashboard';
 
@@ -51,6 +52,7 @@ function Landing() {
 
 function RoleGate({ role }: { role: Role }) {
   const data = useData();
+  useAdoptPatientParam(role);
   if (!data.connected || !data.patientsReady) {
     return (
       <div className="connecting" role="status">

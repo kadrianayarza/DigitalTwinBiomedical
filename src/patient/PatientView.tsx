@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Patient } from '../module_bindings/types';
@@ -9,6 +9,7 @@ import { regionLabel } from '../twin/bodyModel';
 import { buildHotspots } from '../twin/hotspots';
 import { PodVitals } from '../components/PodVitals';
 import { Brand, Panel, SeverityHex } from '../components/ui';
+import { RoleSwitch } from '../components/RoleSwitch';
 import { SymptomSheet, type SymptomDraft } from './SymptomSheet';
 import { TwinPhotoCard } from './TwinPhotoCard';
 
@@ -18,6 +19,11 @@ export function PatientView({ patient }: { patient: Patient }) {
   const updatePointer = useReducer(reducers.updatePointer);
   const [pending, setPending] = useState<{ region: string; point: [number, number, number] } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Keep the full body clear of the header, banner and hint that overlay the stage.
+  const stageRef = useRef<HTMLElement>(null);
+  const hintRef = useRef<HTMLDivElement>(null);
+  const [fitTop, setFitTop] = useState(140);
 
   const symptoms = symptomsFor(data, patient.id);
   const vitals = vitalsFor(data, patient.id);
@@ -89,6 +95,18 @@ export function PatientView({ patient }: { patient: Patient }) {
     return 'reviewed';
   })();
 
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    const hint = hintRef.current;
+    if (!stage || !hint) return;
+    const measure = () =>
+      setFitTop(Math.round(hint.getBoundingClientRect().bottom - stage.getBoundingClientRect().top) + 10);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(stage);
+    return () => ro.disconnect();
+  }, [status]);
+
   return (
     <div className="patient">
       <header className="topbar">
@@ -99,6 +117,7 @@ export function PatientView({ patient }: { patient: Patient }) {
             Day {String(day).padStart(2, '0')} · {careLabel(patient)}
           </span>
         </div>
+        <RoleSwitch to="nurse" />
       </header>
 
       {status && (
@@ -123,11 +142,12 @@ export function PatientView({ patient }: { patient: Patient }) {
         </div>
       )}
 
-      <main className="patient__stage">
-        <div className="hint" aria-hidden>
+      <main className="patient__stage" ref={stageRef}>
+        <div className="hint" aria-hidden ref={hintRef}>
           Tap your twin where it hurts
         </div>
         <TwinViewer
+            fitTop={fitTop}
             side={patient.side === 'left' ? 'left' : 'right'}
             pins={pins}
             pointers={pointers}

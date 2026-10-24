@@ -9,6 +9,7 @@ import { buildHotspots } from '../twin/hotspots';
 import { regionLabel } from '../twin/bodyModel';
 import { PodVitals } from '../components/PodVitals';
 import { Brand, Hex, Panel, SeverityHex, type HexTone } from '../components/ui';
+import { RoleSwitch } from '../components/RoleSwitch';
 import { SbarPanel } from './SbarPanel';
 import { ImpactBar } from './ImpactBar';
 
@@ -47,6 +48,9 @@ export function NurseDashboard() {
         <div className="topbar__who">
           <strong>{data.me?.name}</strong>
         </div>
+        {selected && (
+          <RoleSwitch to="patient" patientId={selected.id} patientName={selected.name} />
+        )}
       </header>
 
       <div className="nurse__grid">
@@ -185,7 +189,8 @@ function PatientDetail({
               onHover={onHover}
               twinUrl={patient.twinUrl}
               seated={usesWheelchair(patient)}
-              hotspots={buildHotspots({ vitals, audience: 'nurse' })}              compact
+              hotspots={buildHotspots({ vitals, audience: 'nurse' })}
+              compact
             />
           </div>
           <Panel title="Check-ins" code={`${symptoms.length} total`} className="detail__timeline">

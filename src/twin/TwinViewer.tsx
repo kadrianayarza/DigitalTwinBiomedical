@@ -53,6 +53,8 @@ type Props = {
   initialMode?: Mode;
   initialFocus?: 'body' | 'knee';
   compact?: boolean;
+  /** Pixels covered by overlays above the twin; the full-body shot fits below them and above the controls. */
+  fitTop?: number;
 };
 
 type Mode = 'outside' | 'inside';
@@ -87,6 +89,26 @@ export function TwinViewer(props: Props) {
   // Landmark callouts are placed on a standing body.
   const seatedScan = !!props.seated && view === 'outside' && skinKind === 'scan';
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const [fitBottom, setFitBottom] = useState(0);
+  const { fitTop } = props;
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const controls = controlsRef.current;
+    if (fitTop === undefined || !root || !controls) return;
+    const measure = () =>
+      setFitBottom(Math.round(root.getBoundingClientRect().bottom - controls.getBoundingClientRect().top) + 12);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, [fitTop]);
+  const fit = useMemo(
+    () => (fitTop === undefined ? undefined : { top: fitTop, bottom: fitBottom }),
+    [fitTop, fitBottom]
+  );
+
   const credit = scanLoading
     ? `Loading your scan · ${ANATOMY_CREDIT}`
     : view === 'inside' || skinKind === 'anatomy'
@@ -96,7 +118,7 @@ export function TwinViewer(props: Props) {
         : EXTERIOR_CREDIT;
 
   return (
-    <div className={`twin twin--${view} ${props.compact ? 'twin--compact' : ''}`}>
+    <div ref={rootRef} className={`twin twin--${view} ${props.compact ? 'twin--compact' : ''}`}>
       <div className="twin__viewport">
         <Canvas
           dpr={[1, 2]}
@@ -108,6 +130,7 @@ export function TwinViewer(props: Props) {
             {...props}
             hotspots={seatedScan ? [] : props.hotspots}
             seatedScan={seatedScan}
+            fit={fit}
             mode={view}
               layers={layers}
               focus={focus}
@@ -143,7 +166,7 @@ export function TwinViewer(props: Props) {
             ))}
           </div>
         )}
-        <div className="twin__controls">
+        <div ref={controlsRef} className="twin__controls">
           {!props.compact && (
             <div className="seg" role="group" aria-label="Camera focus">
               {(['body', 'knee'] as const).map(f => (
@@ -192,6 +215,7 @@ function Scene({
   twinUrl,
   seated,
   seatedScan,
+  fit,
   mode,
   layers,
   focus,
@@ -201,6 +225,7 @@ function Scene({
   onSkinKind,
 }: Props & {
   seatedScan: boolean;
+  fit?: { top: number; bottom: number };
   mode: Mode;
   layers: Record<Layer, boolean>;
   focus: 'body' | 'knee';
@@ -263,7 +288,7 @@ function Scene({
       <directionalLight position={[-3, 2, -2.5]} intensity={inside ? 1.4 : 0.7} color="#ffd9b8" />
       <directionalLight position={[3, 1.5, -2.5]} intensity={inside ? 1.0 : 0.55} color="#d8ecf5" />
 
-      <CameraRig focus={focus} nonce={focusNonce} side={s} />
+      <CameraRig focus={focus} nonce={focusNonce} side={s} fit={fit} seated={seatedScan} />
 
       <Bvh firstHitOnly>
         <group onClick={handleClick} onPointerMove={handleMove} onPointerOut={() => onHover?.(null)}>
@@ -454,13 +479,43 @@ function RealBody({
   );
 }
 
-function CameraRig({ focus, nonce, side }: { focus: 'body' | 'knee'; nonce: number; side: 'l' | 'r' }) {
+/** Feet-to-crown span (m) kept in view when fitting the body between overlays. */
+const BODY_SPAN = 1.84;
+
+function CameraRig({
+  focus,
+  nonce,
+  side,
+  fit,
+  seated,
+}: {
+  focus: 'body' | 'knee';
+  nonce: number;
+  side: 'l' | 'r';
+  fit?: { top: number; bottom: number };
+  seated?: boolean;
+}) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size } = useThree();
   const goal = useRef<{ target: THREE.Vector3; pos: THREE.Vector3 } | null>(null);
+  const tanHalf = Math.tan(THREE.MathUtils.degToRad(35 / 2));
   // Fit the body's width as well as its height in narrow dashboard panels.
   const aspect = size.width / Math.max(size.height, 1);
-  const bodyDistance = Math.max(3.1, 0.4 / (Math.tan(THREE.MathUtils.degToRad(35 / 2)) * Math.max(aspect, 0.01)));
+  const widthDistance = 0.4 / (tanHalf * Math.max(aspect, 0.01));
+
+  // Full-body framing: either the classic fixed shot, or (with `fit`) the whole body
+  // sized into the band between the top and bottom overlays, in pixels.
+  const [bodyY, bodyDistance] = useMemo(() => {
+    if (!fit) return [0.86, Math.max(3.1, widthDistance)];
+    const span = seated ? BODY_SPAN * SEATED_SCALE : BODY_SPAN;
+    const h = Math.max(size.height, 1);
+    const band = Math.max(h - fit.top - fit.bottom, h * 0.45);
+    const visible = (span * h) / band;
+    const distance = Math.max(visible / (2 * tanHalf), widthDistance);
+    const bandCenterNdc = 1 - (2 * (fit.top + band / 2)) / h;
+    const y = span / 2 - 0.02 - bandCenterNdc * distance * tanHalf;
+    return [y, distance];
+  }, [fit?.top, fit?.bottom, seated, size.height, widthDistance, tanHalf]);
 
   useEffect(() => {
     if (focus === 'knee') {
@@ -470,9 +525,9 @@ function CameraRig({ focus, nonce, side }: { focus: 'body' | 'knee'; nonce: numb
         pos: new THREE.Vector3(x + 0.45, y + 0.2, z + 1.15),
       };
     } else {
-      goal.current = { target: new THREE.Vector3(0, 0.86, 0), pos: new THREE.Vector3(0, 0.86, bodyDistance) };
+      goal.current = { target: new THREE.Vector3(0, bodyY, 0), pos: new THREE.Vector3(0, bodyY, bodyDistance) };
     }
-  }, [focus, nonce, side, bodyDistance]);
+  }, [focus, nonce, side, bodyY, bodyDistance]);
 
   useFrame((_, dt) => {
     const c = controls.current;
