@@ -1,6 +1,6 @@
 # Digital Twin Biomedical
 
-A live 3D twin for knee-replacement recovery at home. Patients tap (or talk) to report symptoms on their twin; their follow-up nurse sees it instantly on a live dashboard, with deterministic red-flag rules and a Claude-drafted SBAR handoff to approve.
+A 3D digital twin platform for remote patient monitoring: patients track symptoms on their own body, early-detection rules and Claude watch the stream, and recovery outcomes are simulated against the patient's actual trend — while the care team follows along live. Launch scenario: knee-replacement (TKA) recovery at home; the twin, tap-to-report interaction, and nurse dashboard generalize to other conditions.
 
 Cal Hacks 13.0 · Spacetime · Anthropic "Claude for Public Benefit" · built in Cursor. Full design: `../DESIGN_SPEC.md`.
 

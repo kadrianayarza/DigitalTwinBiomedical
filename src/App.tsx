@@ -22,14 +22,15 @@ function Landing() {
   return (
     <div className="landing">
       <main className="landing__inner">
-        <div className="kicker">Post-operative recovery system · Knee</div>
+        <div className="kicker">Symptom tracking · Early detection · Outcome simulation · Remote monitoring</div>
         <h1 className="titlecard">
           <span className="titlecard__line">Digital Twin</span>
           <span className="titlecard__line titlecard__line--sub">Biomedical</span>
         </h1>
         <p className="landing__lead">
-          A live 3D twin for knee-replacement recovery at home. Patients tap their twin to report what they feel; their
-          nurse sees it instantly, with an AI-drafted handoff to review and approve.
+          A living 3D twin for care at home. Patients track symptoms where they feel them, catch complications early,
+          and see how their recovery can unfold — while their nurse monitors remotely and approves every AI-drafted
+          handoff.
         </p>
         <div className="landing__choices">
           <button className="choice" onClick={() => goToRole('patient')}>
