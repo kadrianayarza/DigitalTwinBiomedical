@@ -24,11 +24,11 @@ export function ImpactBar() {
 
   const metrics = [
     { label: 'Open alerts', value: String(open) },
-    { label: 'Median ack time', value: medianAck === null ? '—' : duration(medianAck) },
+    { label: 'Median ack time', value: medianAck === null ? '–' : duration(medianAck) },
     { label: 'Checked in (24 h)', value: `${checkedIn.size}/${data.patients.length}` },
     {
       label: 'AI drafts edited',
-      value: approved.length ? `${Math.round((edited / approved.length) * 100)}%` : '—',
+      value: approved.length ? `${Math.round((edited / approved.length) * 100)}%` : '–',
     },
     { label: 'Raised by Claude', value: String(claudeRaised) },
   ];

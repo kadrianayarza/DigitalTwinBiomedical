@@ -7,10 +7,10 @@ import { PRIORITY_LABEL, REASON_LABEL, clock, timeAgo } from '../lib/format';
 type Props = { alert: Alert; report: SbarReport | undefined };
 
 const FIELDS = [
-  ['situation', 'S — Situation'],
-  ['background', 'B — Background'],
-  ['assessment', 'A — Assessment'],
-  ['recommendation', 'R — Recommendation'],
+  ['situation', 'S · Situation'],
+  ['background', 'B · Background'],
+  ['assessment', 'A · Assessment'],
+  ['recommendation', 'R · Recommendation'],
 ] as const;
 
 type Draft = Record<(typeof FIELDS)[number][0], string>;

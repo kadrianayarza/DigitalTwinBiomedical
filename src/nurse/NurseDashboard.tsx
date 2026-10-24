@@ -257,7 +257,7 @@ function PatientDetail({
                 <span className="audit__ts">{clock(e.ts)}</span>
                 <span className="audit__line">
                   <span className="audit__actor">{e.actorName}</span> {e.action.replace(/_/g, ' ')}
-                  {e.detail && <span className="audit__detail"> — {e.detail}</span>}
+                  {e.detail && <span className="audit__detail"> · {e.detail}</span>}
                 </span>
               </li>
             ))}

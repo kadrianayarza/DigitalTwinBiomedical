@@ -29,7 +29,7 @@ function Landing() {
         </h1>
         <p className="landing__lead">
           A living 3D twin for care at home. Patients track symptoms where they feel them, catch complications early,
-          and see how their recovery can unfold — while their nurse monitors remotely and approves every AI-drafted
+          and see how their recovery can unfold, while their nurse monitors remotely and approves every AI-drafted
           handoff.
         </p>
         <div className="landing__choices">

@@ -11,7 +11,7 @@ type Props = { vitals: readonly VitalSample[]; detailed?: boolean };
 export function PodVitals({ vitals, detailed }: Props) {
   const last = vitals[vitals.length - 1];
   const series = (f: (v: VitalSample) => number) => vitals.slice(-60).map(f);
-  const fmt = (n: number | undefined, digits = 0) => (n === undefined ? '—' : n.toFixed(digits));
+  const fmt = (n: number | undefined, digits = 0) => (n === undefined ? '–' : n.toFixed(digits));
 
   const tiles = [
     {
@@ -69,7 +69,7 @@ export function PodVitals({ vitals, detailed }: Props) {
     },
     {
       label: 'Steps',
-      value: last ? last.steps.toLocaleString() : '—',
+      value: last ? last.steps.toLocaleString() : '–',
       unit: '',
       values: series(v => v.steps),
       color: '#c9ced8',
