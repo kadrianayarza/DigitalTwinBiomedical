@@ -1,4 +1,4 @@
-# TwinCare
+# Digital Twin Biomedical
 
 A live 3D twin for knee-replacement recovery at home. Patients tap (or talk) to report symptoms on their twin; their follow-up nurse sees it instantly on a live dashboard, with deterministic red-flag rules and a Claude-drafted SBAR handoff to approve.
 
@@ -56,7 +56,7 @@ MESHY_API_KEY=... spacetime publish twincare --server twinlocal --env-only --yes
 
 `MESHY_MODEL` optionally overrides the default `latest` standard model. Keys stay in the SpacetimeDB server environment and are never sent to browsers. `.env.local` is for Vite client settings, not Meshy credentials.
 
-Patients consent to sending a photo to Meshy, then choose a full-body JPEG, PNG, or WebP. TwinCare downscales it before submitting. A private scheduled job posts to Meshy's [Image to 3D API](https://docs.meshy.ai/en/api/image-to-3d), requests a textured A-pose GLB, polls progress, and updates the twin in both views. Polling stops after about 15 minutes; failed and canceled tasks show an error. Transient polling failures retry, but billable generation submissions are never automatically replayed.
+Patients consent to sending a photo to Meshy, then choose a full-body JPEG, PNG, or WebP. Digital Twin Biomedical downscales it before submitting. A private scheduled job posts to Meshy's [Image to 3D API](https://docs.meshy.ai/en/api/image-to-3d), requests a textured A-pose GLB, polls progress, and updates the twin in both views. Polling stops after about 15 minutes; failed and canceled tasks show an error. Transient polling failures retry, but billable generation submissions are never automatically replayed.
 
 The pending photo is removed from the job after submission. Meshy controls its own retention and generated-asset expiry. Use non-sensitive demo photos. Generated shapes are approximate, and Inside mode always shows reference anatomy, not a medical reconstruction.
 
