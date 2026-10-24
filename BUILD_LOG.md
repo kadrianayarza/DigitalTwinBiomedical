@@ -30,6 +30,16 @@ Screenshots: _add here_
 - Tap-to-region now works on the real skin (nearest body region to the tapped point); verified "Right calf (front)".
 - Photo twin: the patient uploads a full-body photo; a `requestTwin` reducer queues a scheduled procedure that sends it to fal's image-to-3D model (TRELLIS by default), polls until done, and saves the GLB URL on the patient. The fal key is a server-side module environment value. Without a key the patient sees a clear "not configured" message (verified). The viewer normalizes any GLB to standing height and keeps the hotspots and tap-to-region working on it (verified with a test GLB).
 
+## Sat Oct 24
+
+**~11:45 AM PT — Rename, GitHub, and full UI redesign**
+- Renamed the project to **Digital Twin Biomedical** and pushed the repo to github.com/isaksmith/DigitalTwinBiomedical (history scanned for leaked keys first — none).
+- Completely rebuilt the UI with an Evangelion-inspired minimal glass look: dark stage, orange HUD lines, ultra-condensed serif title cards (Noto Serif Display), hexagonal status lights, red hazard stripes reserved for real emergencies. Body/UI set in Google Sans Flex with Google Sans Code for readouts.
+- Nurse alert cards now show a three-unit safety readout (Rules → Claude → Nurse), modeled on the show's MAGI system.
+- 3D scene restyled: orange/cyan rim lights, floor grid with rotating range rings, billboarded hexagon hotspot markers with sensor-ping pulses, and a fresnel "glass skin" shader for the Inside view.
+- Outside view source tiers: personal Meshy scan → Meshy reference exterior → anatomy skin, with a safe GLTF loader that falls back instead of crashing the render loop (found and fixed two uncaught-error bugs that silently killed rendering).
+- Verified in the browser at 1512px and ~1024px: landing, patient Outside/Inside/knee views, tap-to-region check-in sheet, and the nurse console. All 41 tests, both type checks, and the production build pass.
+
 ## To log next
 - [ ] Grok Bot planning thread (screenshot)
 - [ ] First real Claude SBAR vs. template
