@@ -3,7 +3,7 @@ import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Patient } from '../module_bindings/types';
 import { activeAlertFor, symptomsFor, useData, vitalsFor } from '../lib/data';
-import { daysSince, timeAgo } from '../lib/format';
+import { careLabel, daysSince, timeAgo } from '../lib/format';
 import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { regionLabel } from '../twin/bodyModel';
 import { buildHotspots } from '../twin/hotspots';
@@ -96,7 +96,7 @@ export function PatientView({ patient }: { patient: Patient }) {
         <div className="topbar__who">
           <strong>Hi {firstName}</strong>
           <span className="mono">
-            Day {String(day).padStart(2, '0')} · {patient.side === 'left' ? 'Left' : 'Right'} knee replacement
+            Day {String(day).padStart(2, '0')} · {careLabel(patient)}
           </span>
         </div>
       </header>

@@ -6,6 +6,16 @@ export function daysSince(t: Timestamp, now = Date.now()) {
   return Math.max(0, Math.floor((now - tsMs(t)) / 86_400_000));
 }
 
+const SIDED_CARE = /knee|hip|shoulder/i;
+
+/** What the patient is being followed for, with the body side when the condition has one. */
+export function careLabel(p: { procedure: string; side: string }) {
+  if (!SIDED_CARE.test(p.procedure)) return p.procedure;
+  const side = p.side === 'left' ? 'Left' : 'Right';
+  const condition = p.procedure.replace(/^total\s+/i, '');
+  return `${side} ${condition.charAt(0).toLowerCase()}${condition.slice(1)}`;
+}
+
 export function timeAgo(t: Timestamp, now = Date.now()) {
   const s = Math.max(0, Math.round((now - tsMs(t)) / 1000));
   if (s < 60) return `${s}s ago`;

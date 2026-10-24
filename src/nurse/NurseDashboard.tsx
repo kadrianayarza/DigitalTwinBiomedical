@@ -3,7 +3,7 @@ import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Alert } from '../module_bindings/types';
 import { activeAlertFor, symptomsFor, useData, vitalsFor } from '../lib/data';
-import { PRIORITY_LABEL, SCENARIO_LABEL, clock, daysSince, timeAgo } from '../lib/format';
+import { PRIORITY_LABEL, SCENARIO_LABEL, careLabel, clock, daysSince, timeAgo } from '../lib/format';
 import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { buildHotspots } from '../twin/hotspots';
 import { regionLabel } from '../twin/bodyModel';
@@ -76,7 +76,7 @@ export function NurseDashboard() {
                     </span>
                     <span className="census__prio">{alert ? PRIORITY_LABEL[alert.priority] : 'Stable'}</span>
                     <span className="census__meta mono">
-                      {p.age}y · {p.side === 'left' ? 'L' : 'R'} TKA · D{String(daysSince(p.surgeryAt)).padStart(2, '0')}
+                      {p.age}y · {careLabel(p)} · D{String(daysSince(p.surgeryAt)).padStart(2, '0')}
                       {v && ` · HR ${v.hr.toFixed(0)}`}
                     </span>
                   </span>
@@ -164,7 +164,7 @@ function PatientDetail({
           </div>
           <h1 className="titlecard titlecard--name">{patient.name}</h1>
           <div className="detail__meta mono">
-            {patient.age} y · {patient.side === 'left' ? 'Left' : 'Right'} total knee replacement · at home
+            {patient.age} y · {careLabel(patient)} · at home
             {top && (
               <span className={`detail__flag detail__flag--${PRIORITY_TONE[top.priority] ?? 'info'}`}>
                 {PRIORITY_LABEL[top.priority]}

@@ -374,19 +374,19 @@ function ensureSimTimer(ctx: Ctx) {
 function seedPatients(ctx: Ctx) {
   if (ctx.db.patient.count() > 0n) return;
   const now = ctx.timestamp.microsSinceUnixEpoch;
-  const seed: Array<[string, number, string, bigint, string]> = [
-    ['Kadrian Ayarza', 67, 'right', 5n, 'normal'],
-    ['Robert Alvarez', 72, 'left', 12n, 'stalled'],
-    ['Grace Okafor', 59, 'right', 3n, 'normal'],
-    ['Tom Becker', 70, 'left', 2n, 'normal'],
-    ['Mei Lin Wu', 64, 'right', 8n, 'normal'],
+  const seed: Array<[string, number, string, string, bigint, string]> = [
+    ['Kadrian Ayarza', 67, 'Total knee replacement', 'right', 5n, 'normal'],
+    ['Robert Alvarez', 72, 'Total knee replacement', 'left', 12n, 'stalled'],
+    ['Grace Okafor', 59, 'Heart failure monitoring', 'right', 3n, 'normal'],
+    ['Tom Becker', 70, 'Diabetic foot wound care', 'left', 2n, 'normal'],
+    ['Mei Lin Wu', 64, 'COPD monitoring', 'right', 8n, 'normal'],
   ];
-  for (const [name, age, side, daysAgo, scenario] of seed) {
+  for (const [name, age, procedure, side, daysAgo, scenario] of seed) {
     const p = ctx.db.patient.insert({
       id: 0n,
       name,
       age,
-      procedure: 'Total knee replacement',
+      procedure,
       side,
       surgeryAt: new Timestamp(now - daysAgo * DAY_MICROS),
       twinUrl: '',

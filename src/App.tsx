@@ -3,7 +3,7 @@ import { useReducer } from 'spacetimedb/react';
 import { reducers } from './module_bindings';
 import { DataProvider, useData } from './lib/data';
 import { currentRole, goToRole, type Role } from './lib/role';
-import { daysSince } from './lib/format';
+import { careLabel, daysSince } from './lib/format';
 import { Brand } from './components/ui';
 import { PatientView } from './patient/PatientView';
 import { NurseDashboard } from './nurse/NurseDashboard';
@@ -110,7 +110,7 @@ function Onboarding({ role }: { role: Role }) {
                 <button key={String(p.id)} className="choice choice--row" onClick={() => void join(p.id, p.name)}>
                   <span className="choice__title">{p.name}</span>
                   <span className="choice__desc">
-                    {p.side === 'left' ? 'Left' : 'Right'} knee · day {daysSince(p.surgeryAt)}
+                    {careLabel(p)} · day {daysSince(p.surgeryAt)}
                   </span>
                 </button>
               ))}
