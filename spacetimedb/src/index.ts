@@ -392,11 +392,11 @@ function seedPatients(ctx: Ctx) {
   if (ctx.db.patient.count() > 0n) return;
   const now = ctx.timestamp.microsSinceUnixEpoch;
   const seed: Array<[string, number, string, string, bigint, string]> = [
-    ['Kadrian Ayarza', 67, 'Total knee replacement', 'right', 5n, 'normal'],
+    ['Kadrian Ayarza', 22, 'Total knee replacement', 'right', 5n, 'normal'],
     ['Isak Smith', 22, 'Total knee replacement', 'left', 12n, 'normal'],
     ['David Okafor', 59, 'Heart failure monitoring', 'right', 3n, 'fluid'],
-    ['Tom Becker', 70, 'Diabetic foot wound care', 'left', 2n, 'normal'],
-    ['Mei Lin Wu', 64, 'COPD monitoring', 'right', 8n, 'normal'],
+    ['Tom Becker', 28, 'Diabetic foot wound care', 'left', 2n, 'normal'],
+    ['Mei Lin Wu', 25, 'COPD monitoring', 'right', 8n, 'normal'],
   ];
   for (const [name, age, procedure, side, daysAgo, scenario] of seed) {
     const p = ctx.db.patient.insert({
