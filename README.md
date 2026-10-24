@@ -17,8 +17,9 @@ spacetime server add twinlocal --url http://127.0.0.1:3100 --no-fingerprint   # 
 npm install && (cd spacetimedb && npm install)
 spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
 
-# Optional: real Claude drafts instead of template drafts, and photo-to-3D twins via fal
-ANTHROPIC_API_KEY=sk-ant-... FAL_KEY=... spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
+# Optional: real Claude drafts and photo-to-3D twins via Meshy.
+# Supply these as server-side shell variables, never VITE_* variables.
+ANTHROPIC_API_KEY=sk-ant-... MESHY_API_KEY=... spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
 
 # 3. Client
 npm run dev
@@ -39,11 +40,35 @@ After changing tables or reducers: `npm run spacetime:publish:local && npm run s
 | Clinical thresholds, triage prompt, Claude tool schema | `spacetimedb/src/clinical.ts` |
 | Claude call (scheduled procedure, key never reaches the browser) | `runSbarJob` in `spacetimedb/src/index.ts` |
 | 3D twin: layers, implant, tap-to-region | `src/twin/` |
-| Photo twin (fal image-to-3D, scheduled procedure) | `requestTwin` / `runTwinJob` in `spacetimedb/src/index.ts`, `src/patient/TwinPhotoCard.tsx` |
+| Photo twin (Meshy image-to-3D, scheduled procedure) | `requestTwin` / `runTwinJob` in `spacetimedb/src/index.ts`, API client in `spacetimedb/src/meshy.ts`, `src/patient/TwinPhotoCard.tsx` |
 | Patient check-in (OPQRST) | `src/patient/` |
 | Nurse dashboard, SBAR approval, impact metrics | `src/nurse/` |
 
 Safety model: fixed rules run first and set a priority floor; Claude can raise priority but never lower it and never sets "emergency"; every AI draft needs nurse approval; patients never see AI output.
+
+## Meshy photo twins
+
+Create an API key using [Meshy's API quickstart](https://docs.meshy.ai/en/api/quick-start), ensure the account has API credits, and publish with `MESHY_API_KEY` set in the shell. An existing server can receive a new key without a rebuild:
+
+```bash
+MESHY_API_KEY=... spacetime publish twincare --server twinlocal --env-only --yes
+```
+
+`MESHY_MODEL` optionally overrides the default `latest` standard model. Keys stay in the SpacetimeDB server environment and are never sent to browsers. `.env.local` is for Vite client settings, not Meshy credentials.
+
+Patients consent to sending a photo to Meshy, then choose a full-body JPEG, PNG, or WebP. TwinCare downscales it before submitting. A private scheduled job posts to Meshy's [Image to 3D API](https://docs.meshy.ai/en/api/image-to-3d), requests a textured A-pose GLB, polls progress, and updates the twin in both views. Polling stops after about 15 minutes; failed and canceled tasks show an error. Transient polling failures retry, but billable generation submissions are never automatically replayed.
+
+The pending photo is removed from the job after submission. Meshy controls its own retention and generated-asset expiry. Use non-sensitive demo photos. Generated shapes are approximate, and Inside mode always shows reference anatomy, not a medical reconstruction.
+
+## Checks
+
+```bash
+npm test
+npm run build
+npx tsc --noEmit -p spacetimedb/tsconfig.json
+```
+
+The tests use mocked Meshy responses and do not upload photos or spend credits.
 
 ## Demo controls
 

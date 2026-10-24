@@ -321,6 +321,9 @@ p {
 /* ---------- twin ---------- */
 .twin {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 84px minmax(0, 1fr) auto;
   width: 100%;
   height: 100%;
   min-height: 420px;
@@ -331,6 +334,12 @@ p {
 }
 .twin--compact {
   min-height: 360px;
+}
+.twin__viewport {
+  position: relative;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
 }
 .twin canvas {
   touch-action: none;
@@ -344,10 +353,9 @@ p {
   right: 12px;
 }
 .twin__dock {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
+  position: relative;
+  grid-row: 3;
+  margin: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1092,6 +1100,18 @@ p {
   flex-wrap: wrap;
   gap: 8px;
   margin: 10px 0 6px;
+}
+.twinphoto__consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.twinphoto__consent input {
+  margin: 2px 0 0;
+  accent-color: var(--accent);
 }
 .twinphoto__status,
 .twinphoto__error {

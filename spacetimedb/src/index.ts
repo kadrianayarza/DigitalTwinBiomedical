@@ -7,6 +7,7 @@ import {
   type ReducerCtx,
 } from 'spacetimedb/server';
 import { ScheduleAt, TimeDuration, Timestamp, type Identity } from 'spacetimedb';
+import { MeshyError, pollMeshyTask, submitMeshyTask, type MeshyFetch } from './meshy';
 import {
   CALF_BASELINE_C,
   INCISION_BASELINE_C,
@@ -188,7 +189,7 @@ const sbarJob = table(
   }
 );
 
-// Private: holds the patient photo only until it has been submitted to fal.
+// Private: holds the patient photo only until it has been submitted to Meshy.
 const twinJob = table(
   { name: 'twin_job' },
   {
@@ -197,7 +198,7 @@ const twinJob = table(
     patientId: t.u64(),
     photo: t.string(),
     statusUrl: t.string(),
-    responseUrl: t.string(),
+    responseUrl: t.string(), // legacy column retained to avoid a destructive table migration
     attempt: t.u32(),
   }
 );
@@ -232,8 +233,8 @@ const spacetimedb = schema(
     env: {
       ANTHROPIC_API_KEY: t.option(t.string()),
       CLAUDE_MODEL: t.option(t.string()),
-      FAL_KEY: t.option(t.string()),
-      FAL_MODEL: t.option(t.string()),
+      MESHY_API_KEY: t.option(t.string()),
+      MESHY_MODEL: t.option(t.string()),
     },
   }
 );
@@ -475,6 +476,9 @@ export const setTwinUrl = spacetimedb.reducer(
   (ctx, { patientId, twinUrl }) => {
     const p = ctx.db.patient.id.find(patientId);
     if (!p) throw new SenderError('Unknown patient');
+    requireTwinAccess(ctx, patientId);
+    const status = ctx.db.twinStatus.patientId.find(patientId)?.status;
+    if (status === 'queued' || status === 'generating') throw new SenderError('A twin is already being generated');
     ctx.db.patient.id.update({ ...p, twinUrl });
     if (!twinUrl) ctx.db.twinStatus.patientId.delete(patientId);
     audit(ctx, patientId, actorName(ctx, ctx.sender), 'twin_updated', twinUrl ? 'Personal twin' : 'Reference body');
@@ -483,7 +487,15 @@ export const setTwinUrl = spacetimedb.reducer(
 
 const MAX_PHOTO_CHARS = 2_000_000;
 const TWIN_POLL_MICROS = 5_000_000n;
-const TWIN_MAX_POLLS = 72;
+const TWIN_MAX_POLLS = 180;
+
+function requireTwinAccess(ctx: Ctx, patientId: bigint) {
+  const me = ctx.db.userProfile.identity.find(ctx.sender);
+  if (!me || (me.role !== 'nurse' && !(me.role === 'patient' && me.patientId === patientId))) {
+    throw new SenderError('Only the patient or a nurse can update this twin');
+  }
+  return me;
+}
 
 function setTwinStatus(ctx: Ctx, patientId: bigint, status: string, detail: string) {
   const row = { patientId, status, detail, updatedAt: ctx.timestamp };
@@ -496,12 +508,14 @@ export const requestTwin = spacetimedb.reducer(
   (ctx, { patientId, photo }) => {
     const p = ctx.db.patient.id.find(patientId);
     if (!p) throw new SenderError('Unknown patient');
-    const me = ctx.db.userProfile.identity.find(ctx.sender);
-    if (!me || (me.role !== 'nurse' && me.patientId !== patientId)) {
-      throw new SenderError('Only the patient or a nurse can update this twin');
+    const me = requireTwinAccess(ctx, patientId);
+    if (!ctx.env.MESHY_API_KEY?.trim()) {
+      throw new SenderError('Photo twins are not configured on this server (MESHY_API_KEY missing).');
     }
-    if (!/^data:image\/(jpeg|png|webp);base64,/.test(photo)) throw new SenderError('Photo must be a JPEG, PNG or WebP');
     if (photo.length > MAX_PHOTO_CHARS) throw new SenderError('Photo is too large');
+    if (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(photo)) {
+      throw new SenderError('Photo must be a JPEG, PNG or WebP');
+    }
     const busy = ctx.db.twinStatus.patientId.find(patientId);
     if (busy && (busy.status === 'queued' || busy.status === 'generating')) {
       throw new SenderError('A twin is already being generated');
@@ -516,7 +530,7 @@ export const requestTwin = spacetimedb.reducer(
       responseUrl: '',
       attempt: 0,
     });
-    audit(ctx, patientId, me.name, 'twin_requested', 'Photo sent for 3D generation');
+    audit(ctx, patientId, me.name, 'twin_requested', 'Photo submitted for Meshy 3D generation');
   }
 );
 
@@ -525,8 +539,16 @@ export const runTwinJob = spacetimedb.procedure(
   { job: twinJob.rowType },
   t.unit(),
   (ctx, { job }) => {
+    if (!ctx.sender.isEqual(ctx.databaseIdentity)) throw new SenderError('Twin jobs must run on the scheduler');
+    const active = (tx: Ctx) => {
+      const status = tx.db.twinStatus.patientId.find(job.patientId)?.status;
+      return !!tx.db.patient.id.find(job.patientId) && (status === 'queued' || status === 'generating');
+    };
+    if (!ctx.withTx(active)) return {};
+
     const finish = (status: string, detail: string, twinUrl?: string) =>
       ctx.withTx(tx => {
+        if (!active(tx)) return;
         setTwinStatus(tx, job.patientId, status, detail);
         const p = tx.db.patient.id.find(job.patientId);
         if (twinUrl && p) {
@@ -536,63 +558,54 @@ export const runTwinJob = spacetimedb.procedure(
           audit(tx, job.patientId, 'system', 'twin_failed', detail);
         }
       });
-    const poll = (statusUrl: string, responseUrl: string, attempt: number) =>
+    const poll = (statusUrl: string, attempt: number, detail: string) =>
       ctx.withTx(tx => {
+        if (!active(tx)) return;
+        setTwinStatus(tx, job.patientId, 'generating', detail);
         tx.db.twinJob.insert({
           scheduledId: 0n,
           scheduledAt: ScheduleAt.time(tx.timestamp.microsSinceUnixEpoch + TWIN_POLL_MICROS),
           patientId: job.patientId,
           photo: '',
           statusUrl,
-          responseUrl,
+          responseUrl: '',
           attempt,
         });
       });
 
-    const key = ctx.env.FAL_KEY;
+    const key = ctx.env.MESHY_API_KEY;
     if (!key) {
-      finish('error', 'Photo twins are not configured on this server (FAL_KEY missing).');
+      finish('error', 'Photo twins are not configured on this server (MESHY_API_KEY missing).');
       return {};
     }
-    const headers = { authorization: `Key ${key}`, 'content-type': 'application/json' };
-    const model = ctx.env.FAL_MODEL || 'fal-ai/trellis';
+    const fetch: MeshyFetch = (url, options) => ctx.http.fetch(url, {
+      ...options, timeout: TimeDuration.fromMillis(30_000),
+    });
 
     try {
       if (!job.statusUrl) {
-        const res = ctx.http.fetch(`https://queue.fal.run/${model}`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ image_url: job.photo, texture_size: '1024' }),
-          timeout: TimeDuration.fromMillis(30_000),
-        });
-        const text = res.text();
-        if (res.status >= 300) throw new Error(`submit HTTP ${res.status}: ${text.slice(0, 160)}`);
-        const body = JSON.parse(text) as { status_url?: string; response_url?: string };
-        if (!body.status_url || !body.response_url) throw new Error('fal did not return queue URLs');
-        ctx.withTx(tx => setTwinStatus(tx, job.patientId, 'generating', 'Building your 3D twin'));
-        poll(body.status_url, body.response_url, 1);
+        const statusUrl = submitMeshyTask(fetch, key, job.photo, ctx.env.MESHY_MODEL || 'latest');
+        poll(statusUrl, 1, 'Your photo is in the Meshy queue.');
         return {};
       }
 
-      const res = ctx.http.fetch(job.statusUrl, { headers, timeout: TimeDuration.fromMillis(15_000) });
-      const text = res.text();
-      if (res.status >= 300) throw new Error(`status HTTP ${res.status}: ${text.slice(0, 160)}`);
-      const { status } = JSON.parse(text) as { status?: string };
-      if (status !== 'COMPLETED') {
-        if (job.attempt >= TWIN_MAX_POLLS) throw new Error('Timed out waiting for the 3D model');
-        poll(job.statusUrl, job.responseUrl, job.attempt + 1);
+      const task = pollMeshyTask(fetch, key, job.statusUrl);
+      if (task.status === 'generating') {
+        if (job.attempt >= TWIN_MAX_POLLS) {
+          throw new MeshyError('Meshy took too long. Check the Meshy dashboard before starting another task.');
+        }
+        poll(job.statusUrl, job.attempt + 1, task.detail);
         return {};
       }
 
-      const out = ctx.http.fetch(job.responseUrl, { headers, timeout: TimeDuration.fromMillis(15_000) });
-      const outText = out.text();
-      if (out.status >= 300) throw new Error(`result HTTP ${out.status}: ${outText.slice(0, 160)}`);
-      const url = (JSON.parse(outText) as { model_mesh?: { url?: string } }).model_mesh?.url;
-      if (!url) throw new Error('fal result had no model_mesh');
-      finish('ready', 'Personal twin ready', url);
+      finish('ready', task.detail, task.twinUrl);
     } catch (e) {
-      console.error(`Twin generation failed: ${String(e)}`);
-      finish('error', String(e).slice(0, 200));
+      // Polls are safe to retry; never replay a potentially billable POST after a network error.
+      if (job.statusUrl && job.attempt < TWIN_MAX_POLLS && (!(e instanceof MeshyError) || e.retryable)) {
+        poll(job.statusUrl, job.attempt + 1, 'Waiting for Meshy to reconnect…');
+      } else {
+        finish('error', e instanceof MeshyError ? e.message : 'Could not confirm the Meshy request. Check the Meshy dashboard before trying again.');
+      }
     }
     return {};
   }

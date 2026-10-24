@@ -1,6 +1,6 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { Bvh, ContactShadows, Html, OrbitControls, Sparkles } from '@react-three/drei';
+import { Bvh, Html, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { BONE, MUSCLE, SKIN, implantParts, regionForHit, regionLabel, type HotspotId, type Part } from './bodyModel';
@@ -16,6 +16,7 @@ import {
   useAnatomy,
 } from './anatomy';
 import type { HotspotTone, TwinHotspot } from './hotspots';
+import { createGroundShadowTexture, createTwinMaterials, setTwinMaterialMode, type TwinMaterials } from './materials';
 
 export type TwinPin = {
   id: string;
@@ -69,24 +70,25 @@ export function TwinViewer(props: Props) {
 
   return (
     <div className={`twin twin--${mode} ${props.compact ? 'twin--compact' : ''}`}>
-      <Canvas
-        shadows
-        dpr={[1, 2]}
-        camera={{ position: [0, 1.0, 3.1], fov: 35, near: 0.05, far: 50 }}
-        onPointerMissed={() => setOpenSpot(null)}
-      >
-        <Suspense fallback={null}>
-          <Scene
-            {...props}
-            mode={mode}
-            layers={layers}
-            focus={focus}
-            focusNonce={focusNonce}
-            openSpot={openSpot}
-            onToggleSpot={id => setOpenSpot(cur => (cur === id ? null : id))}
-          />
-        </Suspense>
-      </Canvas>
+      <div className="twin__viewport">
+        <Canvas
+          dpr={[1, 2]}
+          camera={{ position: [0, 0.86, 3.1], fov: 35, near: 0.05, far: 50 }}
+          onPointerMissed={() => setOpenSpot(null)}
+        >
+          <Suspense fallback={null}>
+            <Scene
+              {...props}
+              mode={mode}
+              layers={layers}
+              focus={focus}
+              focusNonce={focusNonce}
+              openSpot={openSpot}
+              onToggleSpot={id => setOpenSpot(cur => (cur === id ? null : id))}
+            />
+          </Suspense>
+        </Canvas>
+      </div>
 
       <div className="seg twin__focus" role="group" aria-label="Camera focus">
         {(['body', 'knee'] as const).map(f => (
@@ -165,36 +167,7 @@ function Scene({
   onToggleSpot: (id: HotspotId) => void;
 }) {
   const s = side === 'left' ? 'l' : 'r';
-  const mats = useMemo(
-    () => ({
-      skin: new THREE.MeshStandardMaterial({ color: '#e9c6ab', roughness: 0.65, transparent: true }),
-      skinSurgical: new THREE.MeshStandardMaterial({
-        color: '#f0b9a0',
-        roughness: 0.6,
-        transparent: true,
-        emissive: new THREE.Color('#ff6a3d'),
-        emissiveIntensity: 0.08,
-      }),
-      realSkin: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, transparent: true }),
-      shorts: new THREE.MeshStandardMaterial({ color: '#4b5f7a', roughness: 0.85, side: THREE.DoubleSide }),
-      muscle: new THREE.MeshStandardMaterial({ color: '#b8483f', roughness: 0.55, transparent: true }),
-      bone: new THREE.MeshStandardMaterial({ color: '#f1ead9', roughness: 0.8 }),
-      insert: new THREE.MeshStandardMaterial({ color: '#f4f7fb', roughness: 0.5, transparent: true, opacity: 0.95, depthTest: false }),
-      artery: new THREE.MeshStandardMaterial({ color: '#c8323c', roughness: 0.45 }),
-      vein: new THREE.MeshStandardMaterial({ color: '#3a5bc7', roughness: 0.45 }),
-      implant: new THREE.MeshStandardMaterial({
-        color: '#c9d3dd',
-        metalness: 0.9,
-        roughness: 0.25,
-        emissive: new THREE.Color('#5aa9ff'),
-        emissiveIntensity: 0.35,
-        transparent: true,
-        opacity: 0.95,
-        depthTest: false,
-      }),
-    }),
-    []
-  );
+  const mats = useMemo(createTwinMaterials, []);
 
   const inside = mode === 'inside';
   const show: Visible = {
@@ -204,16 +177,8 @@ function Scene({
     implant: inside && layers.implant,
   };
 
-  useEffect(() => {
-    for (const m of [mats.skin, mats.skinSurgical, mats.realSkin]) {
-      m.opacity = inside ? 0.1 : 1;
-      m.depthWrite = !inside;
-      m.needsUpdate = true;
-    }
-    const seeThrough = show.bone || show.vessel;
-    mats.muscle.opacity = seeThrough ? 0.45 : 1;
-    mats.muscle.depthWrite = !seeThrough;
-    mats.muscle.needsUpdate = true;
+  useLayoutEffect(() => {
+    setTwinMaterialMode(mats, inside, show.bone || show.vessel);
   }, [inside, show.bone, show.vessel, mats]);
 
   const [surface, setSurface] = useState<THREE.Object3D | null>(null);
@@ -244,7 +209,7 @@ function Scene({
     <>
       <color attach="background" args={[inside ? '#f8f2f2' : '#f4f7fa']} />
       <hemisphereLight args={['#ffffff', '#c9d4de', 0.9]} />
-      <directionalLight position={[2, 4, 3]} intensity={1.6} castShadow />
+      <directionalLight position={[2, 4, 3]} intensity={1.6} />
       <directionalLight position={[-3, 2, -2]} intensity={0.5} />
 
       <CameraRig focus={focus} nonce={focusNonce} side={s} />
@@ -270,8 +235,6 @@ function Scene({
         <Hotspot key={h.id} spot={h} point={anchors[h.id]} open={openSpot === h.id} onToggle={onToggleSpot} />
       ))}
 
-      <Sparkles count={36} scale={[3.2, 2.2, 2]} position={[0, 1.05, -0.6]} size={1.6} speed={0.18} opacity={0.45} color="#9aa6b2" />
-
       {pins.map(pin => (
         <Pin key={pin.id} pin={pin} selected={pin.id === selectedPinId} onSelect={onSelectPin} />
       ))}
@@ -279,16 +242,24 @@ function Scene({
         <PointerMarker key={p.id} pointer={p} />
       ))}
 
-      <ContactShadows position={[0, 0, 0]} opacity={0.35} scale={2.5} blur={2.4} far={1.2} />
+      <GroundShadow />
     </>
   );
 }
 
 type Visible = { muscle: boolean; bone: boolean; vessel: boolean; implant: boolean };
-type Mats = Record<
-  'skin' | 'skinSurgical' | 'realSkin' | 'shorts' | 'muscle' | 'bone' | 'artery' | 'vein' | 'implant' | 'insert',
-  THREE.MeshStandardMaterial
->;
+type Mats = TwinMaterials;
+
+function GroundShadow() {
+  const texture = useMemo(createGroundShadowTexture, []);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return (
+    <mesh position={[0, -0.005, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={noRaycast}>
+      <planeGeometry args={[1.05, 0.55]} />
+      <meshBasicMaterial map={texture} transparent opacity={0.3} depthWrite={false} />
+    </mesh>
+  );
+}
 
 /** Primitive stand-in shown while anatomy.glb loads, or if it fails. */
 function ProceduralBody({ side, show, mats }: { side: 'l' | 'r'; show: Visible; mats: Mats }) {
@@ -296,9 +267,9 @@ function ProceduralBody({ side, show, mats }: { side: 'l' | 'r'; show: Visible; 
   return (
     <>
       {SKIN.map(part => (
-        <PartMesh key={part.key} part={part} material={surgical(part) ? mats.skinSurgical : mats.skin} tappable />
+        <PartMesh key={part.key} part={part} material={surgical(part) ? mats.skinSurgical : mats.skin} tappable renderOrder={3} />
       ))}
-      {show.muscle && MUSCLE.map(part => <PartMesh key={part.key} part={part} material={mats.muscle} />)}
+      {show.muscle && MUSCLE.map(part => <PartMesh key={part.key} part={part} material={mats.muscle} renderOrder={2} />)}
       {show.bone && BONE.map(part => <PartMesh key={part.key} part={part} material={mats.bone} />)}
       {show.implant && implantParts(side).map(part => <PartMesh key={part.key} part={part} material={mats.implant} />)}
     </>
@@ -323,10 +294,10 @@ function RealBody({
   const geo = useAnatomy(side);
   const skinRef = useCallback((m: THREE.Mesh | null) => m && onSurface(m), [onSurface]);
   const skin = geo.skin && (
-    <mesh ref={skinRef} geometry={geo.skin} material={mats.realSkin} userData={{ tappable: true }} castShadow />
+    <mesh ref={skinRef} geometry={geo.skin} material={mats.realSkin} userData={{ tappable: true }} renderOrder={3} />
   );
-  const inner = (g: THREE.BufferGeometry | undefined, m: THREE.Material, on: boolean) =>
-    on && g ? <mesh geometry={g} material={m} raycast={noRaycast} /> : null;
+  const inner = (g: THREE.BufferGeometry | undefined, m: THREE.Material, on: boolean, order = 0) =>
+    on && g ? <mesh geometry={g} material={m} raycast={noRaycast} renderOrder={order} /> : null;
 
   return (
     <>
@@ -342,7 +313,7 @@ function RealBody({
           {!inside && <Shorts material={mats.shorts} />}
         </>
       )}
-      {inner(geo.muscle, mats.muscle, show.muscle)}
+      {inner(geo.muscle, mats.muscle, show.muscle, 2)}
       {inner(geo.bone, mats.bone, show.bone)}
       {inner(geo.artery, mats.artery, show.vessel)}
       {inner(geo.vein, mats.vein, show.vessel)}
@@ -353,8 +324,11 @@ function RealBody({
 
 function CameraRig({ focus, nonce, side }: { focus: 'body' | 'knee'; nonce: number; side: 'l' | 'r' }) {
   const controls = useRef<OrbitControlsImpl>(null);
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const goal = useRef<{ target: THREE.Vector3; pos: THREE.Vector3 } | null>(null);
+  // Fit the body's width as well as its height in narrow dashboard panels.
+  const aspect = size.width / Math.max(size.height, 1);
+  const bodyDistance = Math.max(3.1, 0.4 / (Math.tan(THREE.MathUtils.degToRad(35 / 2)) * Math.max(aspect, 0.01)));
 
   useEffect(() => {
     if (focus === 'knee') {
@@ -364,9 +338,9 @@ function CameraRig({ focus, nonce, side }: { focus: 'body' | 'knee'; nonce: numb
         pos: new THREE.Vector3(x + 0.45, y + 0.2, z + 1.15),
       };
     } else {
-      goal.current = { target: new THREE.Vector3(0, 0.88, 0), pos: new THREE.Vector3(0, 1.0, 3.1) };
+      goal.current = { target: new THREE.Vector3(0, 0.86, 0), pos: new THREE.Vector3(0, 0.86, bodyDistance) };
     }
-  }, [focus, nonce, side]);
+  }, [focus, nonce, side, bodyDistance]);
 
   useFrame((_, dt) => {
     const c = controls.current;
@@ -377,6 +351,9 @@ function CameraRig({ focus, nonce, side }: { focus: 'body' | 'knee'; nonce: numb
     camera.position.lerp(g.pos, k);
     c.update();
     if (c.target.distanceTo(g.target) < 0.002 && camera.position.distanceTo(g.pos) < 0.002) {
+      c.target.copy(g.target);
+      camera.position.copy(g.pos);
+      c.update();
       goal.current = null;
     }
   });
@@ -387,7 +364,7 @@ function CameraRig({ focus, nonce, side }: { focus: 'body' | 'knee'; nonce: numb
       makeDefault
       enablePan={false}
       minDistance={0.45}
-      maxDistance={4}
+      maxDistance={Math.max(4, bodyDistance * 1.5)}
       onStart={() => (goal.current = null)}
     />
   );
@@ -410,13 +387,16 @@ function geometryFor(shape: Part['shape']) {
 
 const noRaycast = () => null;
 
-function PartMesh({ part, material, tappable }: { part: Part; material: THREE.Material; tappable?: boolean }) {
+function PartMesh({ part, material, tappable, renderOrder = 0 }: {
+  part: Part; material: THREE.Material; tappable?: boolean; renderOrder?: number;
+}) {
   return (
     <mesh
       position={part.pos}
       rotation={part.rot ?? [0, 0, 0]}
       scale={part.scale ?? [1, 1, 1]}
       material={material}
+      renderOrder={renderOrder}
       userData={{ part }}
       raycast={tappable ? undefined : noRaycast}
       castShadow={tappable}
@@ -433,16 +413,8 @@ function severityColor(sev: number) {
 }
 
 function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onSelect?: (id: string) => void }) {
-  const ring = useRef<THREE.Mesh>(null);
   const [hover, setHover] = useState(false);
   const color = pin.pending ? '#3e63dd' : severityColor(pin.severity);
-
-  useFrame(({ clock }) => {
-    if (!ring.current) return;
-    const t = (clock.elapsedTime * 1.2 + pin.x * 10) % 1;
-    ring.current.scale.setScalar(1 + t * 1.6);
-    (ring.current.material as THREE.MeshBasicMaterial).opacity = 0.6 * (1 - t);
-  });
 
   return (
     <group position={[pin.x, pin.y, pin.z]}>
@@ -456,11 +428,11 @@ function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onS
         onPointerOut={() => setHover(false)}
       >
         <sphereGeometry args={[selected ? 0.02 : 0.015, 20, 12]} />
-        <meshBasicMaterial color={color} depthTest={false} transparent />
+        <meshBasicMaterial color={color} depthTest={false} depthWrite={false} />
       </mesh>
-      <mesh ref={ring} renderOrder={9} raycast={noRaycast}>
-        <sphereGeometry args={[0.018, 20, 12]} />
-        <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.4} />
+      <mesh renderOrder={9} raycast={noRaycast}>
+        <sphereGeometry args={[0.028, 20, 12]} />
+        <meshBasicMaterial color={color} depthTest={false} depthWrite={false} transparent opacity={0.2} />
       </mesh>
       {(hover || selected || pin.pending) && (
         <Html center zIndexRange={[4, 0]} distanceFactor={0.85} position={[0, 0.05, 0]} style={{ pointerEvents: 'none' }}>
@@ -488,20 +460,16 @@ function Hotspot({
   open: boolean;
   onToggle: (id: HotspotId) => void;
 }) {
-  const halo = useRef<THREE.Mesh>(null);
   const color = TONE_COLOR[spot.tone];
   const [flip, setFlip] = useState(false);
   const projected = useMemo(() => new THREE.Vector3(), []);
 
-  useFrame(({ clock, camera }) => {
+  useFrame(({ camera }) => {
     if (open) {
-      const onRight = projected.set(...point).project(camera).x > 0;
+      const x = projected.set(...point).project(camera).x;
+      const onRight = flip ? x > -0.08 : x > 0.08;
       if (onRight !== flip) setFlip(onRight);
     }
-    if (!halo.current) return;
-    const t = (Math.sin(clock.elapsedTime * 2.4 + point[1] * 9) + 1) / 2;
-    halo.current.scale.setScalar(1 + t * 0.6);
-    (halo.current.material as THREE.MeshBasicMaterial).opacity = 0.18 + 0.22 * (1 - t);
   });
 
   return (
@@ -519,11 +487,11 @@ function Hotspot({
         onPointerOut={() => (document.body.style.cursor = '')}
       >
         <sphereGeometry args={[open ? 0.012 : 0.009, 20, 12]} />
-        <meshBasicMaterial color={open ? '#ffffff' : color} />
+        <meshBasicMaterial color={open ? '#ffffff' : color} depthWrite={false} />
       </mesh>
-      <mesh ref={halo} renderOrder={7} raycast={noRaycast}>
-        <sphereGeometry args={[0.02, 20, 12]} />
-        <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} />
+      <mesh renderOrder={7} raycast={noRaycast}>
+        <sphereGeometry args={[0.024, 20, 12]} />
+        <meshBasicMaterial color={color} transparent opacity={0.24} depthWrite={false} />
       </mesh>
       {open && (
         <Html zIndexRange={[6, 0]} style={{ pointerEvents: 'none' }}>
@@ -548,7 +516,7 @@ function PointerMarker({ pointer }: { pointer: TwinPointer }) {
     <group position={[pointer.x, pointer.y, pointer.z]}>
       <mesh renderOrder={11} raycast={noRaycast}>
         <torusGeometry args={[0.022, 0.004, 8, 32]} />
-        <meshBasicMaterial color={pointer.color} depthTest={false} transparent />
+        <meshBasicMaterial color={pointer.color} depthTest={false} depthWrite={false} />
       </mesh>
       <Html center zIndexRange={[4, 0]} distanceFactor={0.85} position={[0, 0.045, 0]} style={{ pointerEvents: 'none' }}>
         <div className="pointer-label" style={{ background: pointer.color }}>

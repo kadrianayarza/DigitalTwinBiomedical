@@ -49,12 +49,13 @@ function toFloatGeometry(src: THREE.BufferGeometry, matrix: THREE.Matrix4) {
 const SKIN_BASE = new THREE.Color('#e6c4a9');
 const SKIN_SURGICAL = new THREE.Color('#f2a98d');
 const TOP = new THREE.Color('#b9cfe6');
+const SHORTS = new THREE.Color('#4b5f7a');
 
 const ramp = (v: number, a: number, b: number) => THREE.MathUtils.smoothstep(v, a, b);
 const band = (v: number, lo: number, hi: number, soft: number) =>
   ramp(v, lo - soft, lo + soft) * (1 - ramp(v, hi - soft, hi + soft));
 
-/** Vertex colors: a highlighted surgical leg plus a painted-on tank top. */
+/** Vertex colors keep the reference body covered beneath its clothing. */
 function paintSkin(g: THREE.BufferGeometry, side: 'l' | 'r') {
   const sx = side === 'r' ? -1 : 1;
   const pos = g.getAttribute('position');
@@ -66,33 +67,33 @@ function paintSkin(g: THREE.BufferGeometry, side: 'l' | 'r') {
     const ax = Math.abs(x);
     const surgical = ramp(x * sx, 0.01, 0.035) * band(y, 0.24, 0.7, 0.04);
     const top = band(y, 0.99, 1.4, 0.01) * (1 - ramp(ax, 0.145, 0.17));
-    c.copy(SKIN_BASE).lerp(SKIN_SURGICAL, surgical).lerp(TOP, top);
+    const shorts = band(y, 0.69, 0.99, 0.004) * (1 - ramp(ax, 0.18, 0.21));
+    c.copy(SKIN_BASE).lerp(SKIN_SURGICAL, surgical).lerp(TOP, top).lerp(SHORTS, shorts);
     colors.set([c.r, c.g, c.b], i * 3);
   }
   g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 }
 
-/** Opaque shorts over the unclothed reference mesh; sized from its pelvis and thigh extents. */
+/** Overlapping closed shells keep the hips covered from every viewing angle. */
 export function Shorts({ material }: { material: THREE.Material }) {
-  const tappable = { tappable: true };
   return (
-    <>
-      <mesh position={[0, 0.875, -0.002]} scale={[0.178, 1, 0.13]} material={material} userData={tappable} castShadow>
-        <cylinderGeometry args={[0.97, 1, 0.27, 48, 1, true]} />
+    <group>
+      <mesh position={[0, 0.875, 0.005]} scale={[0.195, 1, 0.165]} material={material} userData={{ tappable: true }} castShadow>
+        <cylinderGeometry args={[0.96, 1, 0.25, 48]} />
       </mesh>
       {[-1, 1].map(sx => (
         <mesh
           key={sx}
-          position={[sx * 0.085, 0.76, 0.008]}
-          scale={[0.086, 1, 0.098]}
+          position={[sx * 0.085, 0.745, 0.008]}
+          scale={[0.103, 1, 0.125]}
           material={material}
-          userData={tappable}
+          userData={{ tappable: true }}
           castShadow
         >
-          <cylinderGeometry args={[1.03, 0.97, 0.14, 40, 1, true]} />
+          <cylinderGeometry args={[1.04, 0.98, 0.15, 40]} />
         </mesh>
       ))}
-    </>
+    </group>
   );
 }
 

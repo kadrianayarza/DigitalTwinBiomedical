@@ -24,19 +24,27 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
   const setTwinUrl = useReducer(reducers.setTwinUrl);
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const status = data.twinStatuses.find(s => s.patientId === patient.id);
-  const busy = status?.status === 'queued' || status?.status === 'generating';
+  const busy = uploading || status?.status === 'queued' || status?.status === 'generating';
 
   const onFile = async (file: File | undefined) => {
-    if (!file) return;
+    if (!file || !consent || busy) return;
     setError(null);
+    setUploading(true);
     try {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        throw new Error('Choose a JPEG, PNG or WebP photo.');
+      }
+      if (file.size > 20 * 1024 * 1024) throw new Error('Choose a photo smaller than 20 MB.');
       const photo = await toJpegDataUri(file);
       await requestTwin({ patientId: patient.id, photo });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      setUploading(false);
       if (input.current) input.current.value = '';
     }
   };
@@ -53,16 +61,22 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
       )}
 
       {busy && (
-        <div className="twinphoto__status">
+        <div className="twinphoto__status" role="status">
           <span className="spinner" aria-hidden />
-          {status?.status === 'queued' ? 'Uploading your photo…' : 'Building your 3D twin. This takes about a minute.'}
+          {uploading || status?.status === 'queued'
+            ? 'Submitting your photo to Meshy…'
+            : status?.detail || 'Meshy is building your 3D twin. This can take several minutes.'}
         </div>
       )}
       {status?.status === 'error' && <div className="twinphoto__error">Couldn’t build your twin: {status.detail}</div>}
       {error && <div className="twinphoto__error">{error}</div>}
 
+      <label className="twinphoto__consent">
+        <input type="checkbox" checked={consent} disabled={busy} onChange={e => setConsent(e.target.checked)} />
+        <span>I agree to send this photo to Meshy to generate my 3D twin.</span>
+      </label>
       <div className="twinphoto__actions">
-        <button className="btn" disabled={busy} onClick={() => input.current?.click()}>
+        <button className="btn" disabled={busy || !consent} onClick={() => input.current?.click()}>
           {patient.twinUrl ? 'Use a new photo' : 'Make my twin from a photo'}
         </button>
         {patient.twinUrl && (
@@ -79,11 +93,14 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
         ref={input}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        aria-label="Full-body photo for Meshy"
+        disabled={busy || !consent}
         hidden
         onChange={e => void onFile(e.target.files?.[0])}
       />
       <p className="muted tiny">
-        Your photo is sent to fal.ai to build the 3D model and isn’t kept by TwinCare. Your care team sees the twin.
+        Meshy processes your photo to make an approximate outside view. Your care team sees the twin.
+        Anatomy and implant layers remain a reference model. Use non-sensitive photos for this demo.
       </p>
     </div>
   );
