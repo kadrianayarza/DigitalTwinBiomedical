@@ -3,7 +3,7 @@ import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Alert } from '../module_bindings/types';
 import { activeAlertFor, symptomsFor, useData, vitalsFor } from '../lib/data';
-import { PRIORITY_LABEL, SCENARIO_LABEL, careLabel, clock, daysSince, timeAgo } from '../lib/format';
+import { PRIORITY_LABEL, SCENARIO_LABEL, careLabel, clock, daysSince, isSurgical, timeAgo } from '../lib/format';
 import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { buildHotspots } from '../twin/hotspots';
 import { regionLabel } from '../twin/bodyModel';
@@ -52,7 +52,7 @@ export function NurseDashboard() {
       <div className="nurse__grid">
         <aside className="census panel">
           <header className="panel__head">
-            <h2 className="panel__title">Post-op patients</h2>
+            <h2 className="panel__title">Patients</h2>
             <span className="panel__code">{census.length} at home</span>
           </header>
           <div className="census__list">
@@ -160,7 +160,8 @@ function PatientDetail({
       <section className="detail">
         <header className="detail__head">
           <div className="kicker">
-            Patient {String(patient.id).padStart(4, '0')} · Post-op day {daysSince(patient.surgeryAt)}
+            Patient {String(patient.id).padStart(4, '0')} · {isSurgical(patient) ? 'Post-op day' : 'Monitoring day'}{' '}
+            {daysSince(patient.surgeryAt)}
           </div>
           <h1 className="titlecard titlecard--name">{patient.name}</h1>
           <div className="detail__meta mono">

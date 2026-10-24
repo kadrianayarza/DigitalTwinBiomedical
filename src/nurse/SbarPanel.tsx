@@ -95,9 +95,9 @@ export function SbarPanel({ alert, report }: Props) {
         <button
           className="btn btn--warn"
           disabled={alert.status === 'escalated' || alert.status === 'resolved'}
-          onClick={() => void escalate({ alertId: alert.id, note: 'Escalated to surgeon on call' })}
+          onClick={() => void escalate({ alertId: alert.id, note: 'Escalated to physician on call' })}
         >
-          Escalate to surgeon
+          Escalate to physician
         </button>
         <button
           className="btn btn--ghost"

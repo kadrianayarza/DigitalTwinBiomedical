@@ -117,7 +117,7 @@ export function PatientView({ patient }: { patient: Patient }) {
           {status === 'reviewed' && (
             <div className="banner banner--ok" role="status">
               {alert?.ackedByName || 'Your nurse'} has reviewed your check-in
-              {alert?.status === 'escalated' ? ' and is contacting your surgeon.' : '.'}
+              {alert?.status === 'escalated' ? ' and is contacting your doctor.' : '.'}
             </div>
           )}
         </div>

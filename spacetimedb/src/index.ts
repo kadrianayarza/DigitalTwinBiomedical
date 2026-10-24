@@ -718,7 +718,7 @@ export const escalateAlert = spacetimedb.reducer(
       ackedAt: a.ackedAt ?? ctx.timestamp,
       ackedByName: a.ackedByName || me.name,
     });
-    audit(ctx, a.patientId, me.name, 'alert_escalated', note || 'Escalated to surgeon');
+    audit(ctx, a.patientId, me.name, 'alert_escalated', note || 'Escalated to physician');
   }
 );
 

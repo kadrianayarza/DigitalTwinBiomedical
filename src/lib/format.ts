@@ -16,6 +16,8 @@ export function careLabel(p: { procedure: string; side: string }) {
   return `${side} ${condition.charAt(0).toLowerCase()}${condition.slice(1)}`;
 }
 
+export const isSurgical = (p: { procedure: string }) => /replacement|repair|surgery|ectomy|otomy/i.test(p.procedure);
+
 export function timeAgo(t: Timestamp, now = Date.now()) {
   const s = Math.max(0, Math.round((now - tsMs(t)) / 1000));
   if (s < 60) return `${s}s ago`;
