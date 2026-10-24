@@ -3,7 +3,7 @@ import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Patient } from '../module_bindings/types';
 import { activeAlertFor, symptomsFor, useData, vitalsFor } from '../lib/data';
-import { careLabel, daysSince, timeAgo } from '../lib/format';
+import { careLabel, daysSince, timeAgo, usesWheelchair } from '../lib/format';
 import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { regionLabel } from '../twin/bodyModel';
 import { buildHotspots } from '../twin/hotspots';
@@ -132,6 +132,7 @@ export function PatientView({ patient }: { patient: Patient }) {
             pins={pins}
             pointers={pointers}
             twinUrl={patient.twinUrl}
+            seated={usesWheelchair(patient)}
             hotspots={buildHotspots({ vitals, audience: 'patient' })}
             onTap={(region, point) => setPending({ region, point })}
             onHover={p =>

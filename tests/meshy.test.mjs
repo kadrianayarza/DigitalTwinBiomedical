@@ -31,6 +31,14 @@ test('submits one textured A-pose GLB request with server-side bearer auth', () 
   });
 });
 
+test('keeps the photo pose for seated twins', () => {
+  const fetch = (_url, options) => {
+    assert.equal('pose_mode' in JSON.parse(options.body), false);
+    return response({ result: 'test-task' });
+  };
+  assert.equal(submitMeshyTask(fetch, key, photo, 'latest', true), taskUrl);
+});
+
 test('accepts a standard model override and safely encodes opaque task IDs', () => {
   const fetch = (_url, options) => {
     assert.equal(JSON.parse(options.body).ai_model, 'meshy-7.1');

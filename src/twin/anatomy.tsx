@@ -418,4 +418,24 @@ export function regionForPoint(point: [number, number, number]): string {
   return regionForHit(best, point);
 }
 
+/** Seated (wheelchair) scans: top of head relative to standing height. */
+export const SEATED_SCALE = 0.76;
+
+/**
+ * Region code for a tap on a seated scan. The standing reference parts don't line
+ * up with a seated body, so classify by height bands of a seated adult instead.
+ */
+export function regionForSeatedPoint([x, y, z]: [number, number, number], standingHeight = 1.72): string {
+  const h = y / (standingHeight * SEATED_SCALE);
+  const side = x >= 0 ? 'l' : 'r';
+  const face = z >= 0 ? 'anterior' : 'posterior';
+  if (h > 0.84) return `head_${face}`;
+  if (h > 0.78) return `neck_${face}`;
+  if (h > 0.58) return face === 'anterior' ? 'chest' : 'back';
+  if (h > 0.47) return face === 'anterior' ? 'abdomen' : `hip_${face}`;
+  if (h > 0.3) return `${Math.hypot(x, z) > 0.3 ? 'knee' : 'thigh'}_${side}_${face}`;
+  if (h > 0.07) return `calf_${side}_${face}`;
+  return `foot_${side}_${face}`;
+}
+
 useGLTF.preload(ANATOMY_URL);

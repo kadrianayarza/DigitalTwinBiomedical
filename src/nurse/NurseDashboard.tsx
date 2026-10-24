@@ -3,7 +3,7 @@ import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Alert } from '../module_bindings/types';
 import { activeAlertFor, symptomsFor, useData, vitalsFor } from '../lib/data';
-import { PRIORITY_LABEL, SCENARIO_LABEL, careLabel, clock, daysSince, isSurgical, timeAgo } from '../lib/format';
+import { PRIORITY_LABEL, SCENARIO_LABEL, careLabel, clock, daysSince, isSurgical, timeAgo, usesWheelchair } from '../lib/format';
 import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { buildHotspots } from '../twin/hotspots';
 import { regionLabel } from '../twin/bodyModel';
@@ -184,8 +184,9 @@ function PatientDetail({
               onSelectPin={onSelectPin}
               onHover={onHover}
               twinUrl={patient.twinUrl}
+              seated={usesWheelchair(patient)}
               hotspots={buildHotspots({ vitals, audience: 'nurse' })}
-              initialFocus="knee"
+              initialFocus={/knee/i.test(patient.procedure) ? 'knee' : 'body'}
               compact
             />
           </div>

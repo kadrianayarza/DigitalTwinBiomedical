@@ -48,7 +48,8 @@ function headers(key: string) {
   return { authorization: `Bearer ${key.trim()}`, 'content-type': 'application/json' };
 }
 
-export function submitMeshyTask(fetch: MeshyFetch, key: string, photo: string, model = 'latest'): string {
+/** `keepPose` keeps the pose from the photo (e.g. seated in a wheelchair) instead of an A-pose rig. */
+export function submitMeshyTask(fetch: MeshyFetch, key: string, photo: string, model = 'latest', keepPose = false): string {
   const body = readResponse(fetch(TASKS_URL, {
     method: 'POST',
     headers: headers(key),
@@ -59,7 +60,7 @@ export function submitMeshyTask(fetch: MeshyFetch, key: string, photo: string, m
       target_polycount: 30_000,
       should_texture: true,
       enable_pbr: true,
-      pose_mode: 'a-pose',
+      ...(keepPose ? {} : { pose_mode: 'a-pose' }),
       target_formats: ['glb'],
     }),
   }));

@@ -27,6 +27,9 @@ export const REASON_LABEL: Record<string, string> = {
 
 export const SCENARIOS = ['normal', 'dvt', 'infection', 'fluid'] as const;
 
+/** Wheelchair users get a seated twin; mirrored in src/lib/format.ts. */
+export const usesWheelchair = (procedure: string) => /wheelchair/i.test(procedure);
+
 /** 'calf_r_posterior' -> 'right calf (back)'. Mirrors the client's regionLabel. */
 export function regionText(code: string): string {
   const faces: Record<string, string> = {

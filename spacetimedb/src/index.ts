@@ -17,6 +17,7 @@ import {
   regionText,
   simulateVitals,
   symptomRules,
+  usesWheelchair,
   vitalRules,
   type RuleHit,
 } from './clinical';
@@ -397,6 +398,7 @@ function seedPatients(ctx: Ctx) {
     ['David Okafor', 59, 'Heart failure monitoring', 'right', 3n, 'fluid'],
     ['Tom Becker', 28, 'Diabetic foot wound care', 'left', 2n, 'normal'],
     ['Mei Lin Wu', 25, 'COPD monitoring', 'right', 8n, 'normal'],
+    ['Elena Novak', 24, 'Spinal cord injury, wheelchair user', 'right', 30n, 'normal'],
   ];
   for (const [name, age, procedure, side, daysAgo, scenario] of seed) {
     const p = ctx.db.patient.insert({
@@ -602,7 +604,8 @@ export const runTwinJob = spacetimedb.procedure(
 
     try {
       if (!job.statusUrl) {
-        const statusUrl = submitMeshyTask(fetch, key, job.photo, ctx.env.MESHY_MODEL || 'latest');
+        const seated = ctx.withTx(tx => usesWheelchair(tx.db.patient.id.find(job.patientId)?.procedure ?? ''));
+        const statusUrl = submitMeshyTask(fetch, key, job.photo, ctx.env.MESHY_MODEL || 'latest', seated);
         poll(statusUrl, 1, 'Your photo is in the queue.');
         return {};
       }

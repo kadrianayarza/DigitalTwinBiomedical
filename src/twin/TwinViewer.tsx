@@ -12,10 +12,12 @@ import {
   ModelBoundary,
   PhotoSkin,
   ReferenceExterior,
+  SEATED_SCALE,
   Shorts,
   kneeTarget,
   proxiedTwinUrl,
   regionForPoint,
+  regionForSeatedPoint,
   snapAnchors,
   useAnatomy,
   useGltfStatus,
@@ -46,6 +48,8 @@ type Props = {
   hotspots?: TwinHotspot[];
   /** Personal Meshy twin (GLB). Empty uses the reference exterior. */
   twinUrl?: string;
+  /** The personal scan is seated (wheelchair user). */
+  seated?: boolean;
   initialMode?: Mode;
   initialFocus?: 'body' | 'knee';
   compact?: boolean;
@@ -80,6 +84,8 @@ export function TwinViewer(props: Props) {
   // Show the inside view as the placeholder while a personal scan downloads.
   const scanLoading = useGltfStatus(props.twinUrl ? proxiedTwinUrl(props.twinUrl) : undefined) === 'loading';
   const view: Mode = scanLoading ? 'inside' : mode;
+  // Landmark callouts are placed on a standing body.
+  const seatedScan = !!props.seated && view === 'outside' && skinKind === 'scan';
 
   const credit = scanLoading
     ? `Loading your scan · ${ANATOMY_CREDIT}`
@@ -99,8 +105,10 @@ export function TwinViewer(props: Props) {
         >
           <Suspense fallback={null}>
             <Scene
-              {...props}
-              mode={view}
+            {...props}
+            hotspots={seatedScan ? [] : props.hotspots}
+            seatedScan={seatedScan}
+            mode={view}
               layers={layers}
               focus={focus}
               focusNonce={focusNonce}
@@ -180,6 +188,8 @@ function Scene({
   onHover,
   hotspots = [],
   twinUrl,
+  seated,
+  seatedScan,
   mode,
   layers,
   focus,
@@ -188,6 +198,7 @@ function Scene({
   onToggleSpot,
   onSkinKind,
 }: Props & {
+  seatedScan: boolean;
   mode: Mode;
   layers: Record<Layer, boolean>;
   focus: 'body' | 'knee';
@@ -229,7 +240,7 @@ function Scene({
     if (!part && !e.object.userData.tappable) return;
     e.stopPropagation();
     const p: [number, number, number] = [e.point.x, e.point.y, e.point.z];
-    onTap(part ? regionForHit(part, p) : regionForPoint(p), p);
+    onTap(part ? regionForHit(part, p) : seatedScan ? regionForSeatedPoint(p) : regionForPoint(p), p);
   };
 
   const handleMove = (e: ThreeEvent<PointerEvent>) => {
@@ -262,6 +273,7 @@ function Scene({
                 mats={mats}
                 inside={inside}
                 twinUrl={twinUrl ?? ''}
+                seated={!!seated}
                 onSurface={handleSurface}
               />
             </Suspense>
@@ -356,6 +368,7 @@ function RealBody({
   mats,
   inside,
   twinUrl,
+  seated,
   onSurface,
 }: {
   side: 'l' | 'r';
@@ -363,6 +376,7 @@ function RealBody({
   mats: Mats;
   inside: boolean;
   twinUrl: string;
+  seated: boolean;
   onSurface: (o: THREE.Object3D, kind: SkinKind) => void;
 }) {
   const geo = useAnatomy(side);
@@ -414,7 +428,7 @@ function RealBody({
         <Suspense fallback={reference}>
         <PhotoSkin
           url={proxiedTwinUrl(twinUrl)}
-          height={height}
+          height={seated ? height * SEATED_SCALE : height}
           onReady={onScan}
           onError={() => twinUrl && onFail(twinUrl)}
         />

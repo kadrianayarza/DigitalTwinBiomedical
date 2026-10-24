@@ -16,6 +16,9 @@ export function careLabel(p: { procedure: string; side: string }) {
   return `${side} ${condition.charAt(0).toLowerCase()}${condition.slice(1)}`;
 }
 
+/** Wheelchair users get a seated twin; mirrors spacetimedb/src/clinical.ts. */
+export const usesWheelchair = (p: { procedure: string }) => /wheelchair/i.test(p.procedure);
+
 export const isSurgical = (p: { procedure: string }) => /replacement|repair|surgery|ectomy|otomy/i.test(p.procedure);
 
 export function timeAgo(t: Timestamp, now = Date.now()) {
