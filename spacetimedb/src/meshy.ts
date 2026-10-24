@@ -92,16 +92,31 @@ export function pollMeshyTask(fetch: MeshyFetch, key: string, statusUrl: string)
     }
     case 'SUCCEEDED': {
       const models = body.model_urls as { glb?: unknown } | undefined;
-      if (typeof models?.glb === 'string') {
-        try {
-          const url = new URL(models.glb);
-          if (url.protocol === 'https:' && !url.username && !url.password) {
-            return { status: 'ready', detail: 'Personal twin ready', twinUrl: url.href };
+      console.log(
+        '[meshy] task finished; top-level fields:',
+        Object.keys(body).join(','),
+        '| model_urls keys:',
+        models && typeof models === 'object' ? Object.keys(models).join(',') : String(models)
+      );
+      // Depending on the API version the GLB sits in model_urls.glb or model_url.
+      // Signed URLs sometimes contain raw characters (e.g. spaces), so retry encoded.
+      const candidates = [models?.glb, body.model_url];
+      for (const candidate of candidates) {
+        if (typeof candidate !== 'string' || !candidate.trim()) continue;
+        for (const attempt of [candidate, encodeURI(candidate)]) {
+          try {
+            const url = new URL(attempt);
+            if (url.protocol === 'https:' && !url.username && !url.password) {
+              return { status: 'ready', detail: 'Personal twin ready', twinUrl: url.href };
+            }
+            console.log('[meshy] rejecting non-https asset URL, protocol:', url.protocol);
+          } catch {
+            // Try the next form.
           }
-        } catch {
-          // A successful task still needs a loadable model.
         }
       }
+      const first = typeof models?.glb === 'string' ? models.glb : String(body.model_url);
+      console.log('[meshy] no usable GLB; first 120 chars:', first.slice(0, 120).replace(/\s+/g, ' '));
       throw new MeshyError('Meshy finished without a valid GLB model. Please try another photo.');
     }
     case 'FAILED':
