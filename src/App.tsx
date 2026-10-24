@@ -20,8 +20,19 @@ export default function App() {
 }
 
 function Landing() {
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   return (
-    <div className="landing">
+    <div className="landing landing--video">
+      <video
+        className="landing__video"
+        src="/media/landing-bg.mp4"
+        poster="/media/landing-bg.jpg"
+        autoPlay={!still}
+        loop
+        muted
+        playsInline
+        aria-hidden
+      />
       <main className="landing__inner">
         <div className="kicker">Symptom tracking · Early detection · Outcome simulation · Remote monitoring</div>
         <h1 className="titlecard">
