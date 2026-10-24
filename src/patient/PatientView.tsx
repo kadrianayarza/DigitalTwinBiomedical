@@ -8,6 +8,7 @@ import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { regionLabel } from '../twin/bodyModel';
 import { buildHotspots } from '../twin/hotspots';
 import { PodVitals } from '../components/PodVitals';
+import { Brand, LiveIndicator, Panel, SeverityHex } from '../components/ui';
 import { SymptomSheet, type SymptomDraft } from './SymptomSheet';
 import { TwinPhotoCard } from './TwinPhotoCard';
 
@@ -49,7 +50,7 @@ export function PatientView({ patient }: { patient: Patient }) {
 
   const pointers: TwinPointer[] = data.presence
     .filter(p => p.patientId === patient.id && p.pointing && p.role === 'nurse')
-    .map(p => ({ id: p.identity.toHexString(), name: p.name, x: p.x, y: p.y, z: p.z, color: '#3e63dd' }));
+    .map(p => ({ id: p.identity.toHexString(), name: p.name, x: p.x, y: p.y, z: p.z, color: '#9b6bff' }));
 
   const submit = (d: SymptomDraft) => {
     if (!pending) return;
@@ -91,35 +92,43 @@ export function PatientView({ patient }: { patient: Patient }) {
   return (
     <div className="patient">
       <header className="topbar">
-        <div className="brand">TwinCare</div>
+        <Brand />
         <div className="topbar__who">
           <strong>Hi {firstName}</strong>
-          <span className="muted">
-            Day {day} after {patient.side} knee replacement
+          <span className="mono">
+            Day {String(day).padStart(2, '0')} · {patient.side === 'left' ? 'Left' : 'Right'} knee replacement
           </span>
         </div>
-        <span className={`dot ${data.connected ? 'dot--on' : ''}`} title={data.connected ? 'Live' : 'Offline'} />
+        <LiveIndicator connected={data.connected} />
       </header>
 
-      {status === 'emergency' && (
-        <div className="banner banner--emergency banner--sticky">
-          <strong>Call 911 now</strong> if you have chest pain or trouble breathing. Your nurse has been alerted.
-        </div>
-      )}
-      {status === 'notified' && (
-        <div className="banner banner--info">Your care team has been notified and will review your check-in.</div>
-      )}
-      {status === 'reviewed' && (
-        <div className="banner banner--ok">
-          {alert?.ackedByName || 'Your nurse'} has reviewed your check-in
-          {alert?.status === 'escalated' ? ' and is contacting your surgeon.' : '.'}
+      {status && (
+        <div className="patient__banner">
+          {status === 'emergency' && (
+            <div className="banner banner--emergency" role="alert">
+              <span className="banner__title">Call 911 now</span>
+              <span>If you have chest pain or trouble breathing, call 911. Your nurse has been alerted.</span>
+            </div>
+          )}
+          {status === 'notified' && (
+            <div className="banner banner--info" role="status">
+              Your care team has been notified and will review your check-in.
+            </div>
+          )}
+          {status === 'reviewed' && (
+            <div className="banner banner--ok" role="status">
+              {alert?.ackedByName || 'Your nurse'} has reviewed your check-in
+              {alert?.status === 'escalated' ? ' and is contacting your surgeon.' : '.'}
+            </div>
+          )}
         </div>
       )}
 
-      <main className="patient__main">
-        <section className="patient__twin">
-          <div className="hint">Tap where it hurts</div>
-          <TwinViewer
+      <main className="patient__stage">
+        <div className="hint" aria-hidden>
+          Tap your twin where it hurts
+        </div>
+        <TwinViewer
             side={patient.side === 'left' ? 'left' : 'right'}
             pins={pins}
             pointers={pointers}
@@ -136,35 +145,33 @@ export function PatientView({ patient }: { patient: Patient }) {
               }).catch(() => {})
             }
           />
-        </section>
-
-        <aside className="patient__side">
-          <PodVitals vitals={vitals} />
-          <TwinPhotoCard patient={patient} />
-
-          <div className="card">
-            <div className="card__title">Your check-ins</div>
-            {symptoms.length === 0 ? (
-              <p className="muted">No check-ins yet. Tap your body where you feel something.</p>
-            ) : (
-              <ul className="list">
-                {symptoms.slice(0, 6).map(s => (
-                  <li key={String(s.id)} className="list__row">
-                    <span className={`sev sev--${s.severity >= 7 ? 'hi' : s.severity >= 4 ? 'mid' : 'lo'}`}>
-                      {s.severity}
-                    </span>
-                    <span>
-                      {regionLabel(s.region)}
-                      <span className="muted small"> · {s.quality || 'pain'}</span>
-                    </span>
-                    <span className="muted small">{timeAgo(s.createdAt)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </aside>
       </main>
+
+      <aside className="patient__left">
+        <Panel title="Your check-ins" code={`${symptoms.length} sent`}>
+          {symptoms.length === 0 ? (
+            <p className="muted">No check-ins yet. Tap your twin where you feel something.</p>
+          ) : (
+            <ul className="list">
+              {symptoms.slice(0, 6).map(s => (
+                <li key={String(s.id)} className="list__row">
+                  <SeverityHex severity={s.severity} />
+                  <span className="list__main">
+                    {regionLabel(s.region)}
+                    <span className="muted small">{s.quality || 'pain'}</span>
+                  </span>
+                  <span className="mono muted small">{timeAgo(s.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+        <TwinPhotoCard patient={patient} />
+      </aside>
+
+      <aside className="patient__right">
+        <PodVitals vitals={vitals} />
+      </aside>
 
       {pending && <SymptomSheet region={pending.region} onCancel={() => setPending(null)} onSubmit={submit} />}
       {toast && <div className="toast">{toast}</div>}

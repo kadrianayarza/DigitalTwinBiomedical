@@ -24,13 +24,13 @@ export function ImpactBar() {
 
   const metrics = [
     { label: 'Open alerts', value: String(open) },
-    { label: 'Median time to acknowledge', value: medianAck === null ? '—' : duration(medianAck) },
+    { label: 'Median ack time', value: medianAck === null ? '—' : duration(medianAck) },
     { label: 'Checked in (24 h)', value: `${checkedIn.size}/${data.patients.length}` },
     {
-      label: 'AI drafts edited by nurse',
+      label: 'AI drafts edited',
       value: approved.length ? `${Math.round((edited / approved.length) * 100)}%` : '—',
     },
-    { label: 'Priority raised by Claude', value: String(claudeRaised) },
+    { label: 'Raised by Claude', value: String(claudeRaised) },
   ];
 
   return (

@@ -42,16 +42,46 @@ export function SbarPanel({ alert, report }: Props) {
   const approved = report?.status === 'approved';
   const isAi = report && report.model && report.model !== 'template';
 
+  const claude = pending
+    ? { state: 'wait', value: 'Drafting' }
+    : alert.raisedBy === 'rules+claude'
+      ? { state: 'alarm', value: `Raised to ${PRIORITY_LABEL[alert.priority] ?? alert.priority}` }
+      : isAi
+        ? { state: 'ok', value: `Suggests ${PRIORITY_LABEL[report!.suggestedPriority] ?? 'no change'}` }
+        : { state: 'off', value: 'Offline · template' };
+  const nurse = approved
+    ? { state: 'ok', value: 'Approved' }
+    : alert.status === 'open'
+      ? { state: 'wait', value: 'Awaiting review' }
+      : { state: 'ok', value: alert.status === 'escalated' ? 'Escalated' : 'Acknowledged' };
+
   return (
-    <div className={`alert-card alert-card--${alert.priority}`}>
+    <div className={`alert-card alert-card--${alert.priority} ${alert.status === 'open' ? 'alert-card--open' : ''}`}>
       <div className="alert-card__head">
-        <span className={`prio prio--${alert.priority}`}>{PRIORITY_LABEL[alert.priority] ?? alert.priority}</span>
-        <span className="muted small">
-          Opened {timeAgo(alert.createdAt)} · {alert.status}
-          {alert.ackedByName ? ` by ${alert.ackedByName}` : ''}
-          {alert.raisedBy === 'rules+claude' ? ' · priority raised by Claude' : ''}
+        <span className="alert-card__prio">{PRIORITY_LABEL[alert.priority] ?? alert.priority}</span>
+        <span className="mono small alert-card__when">
+          {timeAgo(alert.createdAt)} · {alert.status}
+          {alert.ackedByName ? ` · ${alert.ackedByName}` : ''}
         </span>
       </div>
+
+      <div className="triad" role="group" aria-label="Safety checks">
+        <div className="triad__unit triad__unit--alarm">
+          <span className="triad__name">Rules</span>
+          <span className="triad__val">
+            {codes.length} {codes.length === 1 ? 'rule' : 'rules'} fired
+          </span>
+        </div>
+        <div className={`triad__unit triad__unit--${claude.state}`}>
+          <span className="triad__name">Claude</span>
+          <span className="triad__val">{claude.value}</span>
+        </div>
+        <div className={`triad__unit triad__unit--${nurse.state}`}>
+          <span className="triad__name">Nurse</span>
+          <span className="triad__val">{nurse.value}</span>
+        </div>
+      </div>
+
       <ul className="reasons">
         {codes.map(c => (
           <li key={c}>{REASON_LABEL[c] ?? c}</li>
@@ -80,7 +110,7 @@ export function SbarPanel({ alert, report }: Props) {
 
       <div className="sbar">
         <div className="sbar__head">
-          <div className="card__title">SBAR handoff</div>
+          <div className="panel__title">SBAR handoff</div>
           {pending ? (
             <span className="tag tag--pulse">Drafting…</span>
           ) : approved ? (
@@ -89,7 +119,7 @@ export function SbarPanel({ alert, report }: Props) {
             </span>
           ) : (
             <span className={`tag ${isAi ? 'tag--ai' : ''}`}>
-              {isAi ? `AI draft · ${report!.model}` : 'Template draft'} — needs nurse approval
+              {isAi ? `AI draft · ${report!.model}` : 'Template draft'} · needs approval
             </span>
           )}
         </div>

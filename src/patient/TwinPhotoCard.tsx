@@ -3,6 +3,7 @@ import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Patient } from '../module_bindings/types';
 import { useData } from '../lib/data';
+import { Panel } from '../components/ui';
 
 const MAX_SIDE = 1024;
 
@@ -50,15 +51,12 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
   };
 
   return (
-    <div className="card twinphoto">
-      <div className="card__title">Your twin</div>
-      {patient.twinUrl ? (
-        <p className="muted small">Your twin was made from your photo. The shape is approximate.</p>
-      ) : (
-        <p className="muted small">
-          Add a full-body photo (standing, arms slightly out) and we’ll shape the twin to look like you.
-        </p>
-      )}
+    <Panel title="Your twin" code={patient.twinUrl ? 'Personal scan' : 'Reference body'} className="twinphoto">
+      <p className="muted small">
+        {patient.twinUrl
+          ? 'Your twin was made from your photo. The shape is approximate.'
+          : 'Add a full-body photo (standing, arms slightly out) and Meshy will shape the twin to look like you.'}
+      </p>
 
       {busy && (
         <div className="twinphoto__status" role="status">
@@ -71,7 +69,7 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
       {status?.status === 'error' && <div className="twinphoto__error">Couldn’t build your twin: {status.detail}</div>}
       {error && <div className="twinphoto__error">{error}</div>}
 
-      <label className="twinphoto__consent">
+      <label className="check">
         <input type="checkbox" checked={consent} disabled={busy} onChange={e => setConsent(e.target.checked)} />
         <span>I agree to send this photo to Meshy to generate my 3D twin.</span>
       </label>
@@ -99,9 +97,9 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
         onChange={e => void onFile(e.target.files?.[0])}
       />
       <p className="muted tiny">
-        Meshy processes your photo to make an approximate outside view. Your care team sees the twin.
-        Anatomy and implant layers remain a reference model. Use non-sensitive photos for this demo.
+        Meshy turns your photo into an approximate outside view. Your care team sees the twin. The inside layers are a
+        reference model, not your scan. Use non-sensitive photos for this demo.
       </p>
-    </div>
+    </Panel>
   );
 }

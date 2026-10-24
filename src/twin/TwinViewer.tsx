@@ -1,11 +1,12 @@
 import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { Bvh, Html, OrbitControls } from '@react-three/drei';
+import { Billboard, Bvh, Grid, Html, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { BONE, MUSCLE, SKIN, implantParts, regionForHit, regionLabel, type HotspotId, type Part } from './bodyModel';
 import {
   ANATOMY_CREDIT,
+  EXTERIOR_URL,
   Implant,
   ModelBoundary,
   PhotoSkin,
@@ -39,7 +40,7 @@ type Props = {
   onTap?: (region: string, point: [number, number, number]) => void;
   onHover?: (point: [number, number, number] | null) => void;
   hotspots?: TwinHotspot[];
-  /** Generated photo twin (GLB). Empty uses the reference body. */
+  /** Personal Meshy twin (GLB). Empty uses the reference exterior. */
   twinUrl?: string;
   initialMode?: Mode;
   initialFocus?: 'body' | 'knee';
@@ -48,13 +49,17 @@ type Props = {
 
 type Mode = 'outside' | 'inside';
 type Layer = 'muscle' | 'bone' | 'vessel' | 'implant';
+/** What the outer surface currently is. */
+type SkinKind = 'scan' | 'reference' | 'anatomy';
 
 const LAYERS: Array<{ id: Layer; label: string; color: string }> = [
-  { id: 'muscle', label: 'Muscles', color: '#b8483f' },
-  { id: 'bone', label: 'Bones', color: '#d9cfb8' },
-  { id: 'vessel', label: 'Vessels', color: 'linear-gradient(90deg, #c8323c 50%, #3a5bc7 50%)' },
-  { id: 'implant', label: 'Implant', color: '#5aa9ff' },
+  { id: 'muscle', label: 'Muscles', color: '#c4453c' },
+  { id: 'bone', label: 'Bones', color: '#efe6d2' },
+  { id: 'vessel', label: 'Vessels', color: 'linear-gradient(90deg, #ff3b4f 50%, #4a6dff 50%)' },
+  { id: 'implant', label: 'Implant', color: '#3ad7ff' },
 ];
+
+const ORANGE = '#ff7a1a';
 
 export function TwinViewer(props: Props) {
   const [mode, setMode] = useState<Mode>(props.initialMode ?? 'outside');
@@ -67,6 +72,14 @@ export function TwinViewer(props: Props) {
   const [focus, setFocus] = useState<'body' | 'knee'>(props.initialFocus ?? 'body');
   const [focusNonce, setFocusNonce] = useState(0);
   const [openSpot, setOpenSpot] = useState<HotspotId | null>(null);
+  const [skinKind, setSkinKind] = useState<SkinKind>('anatomy');
+
+  const credit =
+    mode === 'inside' || skinKind === 'anatomy'
+      ? ANATOMY_CREDIT
+      : skinKind === 'scan'
+        ? 'Personal scan · Meshy image-to-3D · shape is approximate'
+        : 'Reference exterior · Meshy image-to-3D';
 
   return (
     <div className={`twin twin--${mode} ${props.compact ? 'twin--compact' : ''}`}>
@@ -85,25 +98,17 @@ export function TwinViewer(props: Props) {
               focusNonce={focusNonce}
               openSpot={openSpot}
               onToggleSpot={id => setOpenSpot(cur => (cur === id ? null : id))}
+              onSkinKind={setSkinKind}
             />
           </Suspense>
         </Canvas>
       </div>
 
-      <div className="seg twin__focus" role="group" aria-label="Camera focus">
-        {(['body', 'knee'] as const).map(f => (
-          <button
-            key={f}
-            className={focus === f ? 'seg__btn seg__btn--on' : 'seg__btn'}
-            aria-pressed={focus === f}
-            onClick={() => {
-              setFocus(f);
-              setFocusNonce(n => n + 1);
-            }}
-          >
-            {f === 'body' ? 'Full body' : 'Knee'}
-          </button>
-        ))}
+      <div className="twin__hud" aria-hidden>
+        <span className="twin__hudlabel">
+          Twin · {mode === 'outside' ? 'Exterior' : 'Interior'}
+          <em>{mode === 'outside' && skinKind !== 'anatomy' ? 'Meshy' : 'Anatomy'}</em>
+        </span>
       </div>
 
       <div className="twin__dock">
@@ -122,21 +127,36 @@ export function TwinViewer(props: Props) {
             ))}
           </div>
         )}
-        <div className="seg modepill" role="group" aria-label="View">
-          {(['outside', 'inside'] as const).map(m => (
-            <button
-              key={m}
-              className={mode === m ? `seg__btn modepill__btn--on modepill__btn--${m}` : 'seg__btn'}
-              aria-pressed={mode === m}
-              onClick={() => setMode(m)}
-            >
-              {m === 'outside' ? 'Outside' : 'Inside'}
-            </button>
-          ))}
+        <div className="twin__controls">
+          <div className="seg" role="group" aria-label="Camera focus">
+            {(['body', 'knee'] as const).map(f => (
+              <button
+                key={f}
+                className={focus === f ? 'seg__btn seg__btn--on' : 'seg__btn'}
+                aria-pressed={focus === f}
+                onClick={() => {
+                  setFocus(f);
+                  setFocusNonce(n => n + 1);
+                }}
+              >
+                {f === 'body' ? 'Full body' : 'Knee'}
+              </button>
+            ))}
+          </div>
+          <div className="seg seg--mode" role="group" aria-label="View">
+            {(['outside', 'inside'] as const).map(m => (
+              <button
+                key={m}
+                className={mode === m ? 'seg__btn seg__btn--on' : 'seg__btn'}
+                aria-pressed={mode === m}
+                onClick={() => setMode(m)}
+              >
+                {m === 'outside' ? 'Outside' : 'Inside'}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="twin__credit">
-        {mode === 'outside' && props.twinUrl ? 'Generated from your photo · shape is approximate' : ANATOMY_CREDIT}
+        <div className="twin__credit">{credit}</div>
       </div>
     </div>
   );
@@ -158,6 +178,7 @@ function Scene({
   focusNonce,
   openSpot,
   onToggleSpot,
+  onSkinKind,
 }: Props & {
   mode: Mode;
   layers: Record<Layer, boolean>;
@@ -165,6 +186,7 @@ function Scene({
   focusNonce: number;
   openSpot: HotspotId | null;
   onToggleSpot: (id: HotspotId) => void;
+  onSkinKind: (kind: SkinKind) => void;
 }) {
   const s = side === 'left' ? 'l' : 'r';
   const mats = useMemo(createTwinMaterials, []);
@@ -183,6 +205,13 @@ function Scene({
 
   const [surface, setSurface] = useState<THREE.Object3D | null>(null);
   const anchors = useMemo(() => snapAnchors(s, surface), [s, surface]);
+  const handleSurface = useCallback(
+    (o: THREE.Object3D, kind: SkinKind) => {
+      setSurface(o);
+      onSkinKind(kind);
+    },
+    [onSkinKind]
+  );
 
   const lastHover = useRef(0);
 
@@ -207,10 +236,11 @@ function Scene({
 
   return (
     <>
-      <color attach="background" args={[inside ? '#f8f2f2' : '#f4f7fa']} />
-      <hemisphereLight args={['#ffffff', '#c9d4de', 0.9]} />
-      <directionalLight position={[2, 4, 3]} intensity={1.6} />
-      <directionalLight position={[-3, 2, -2]} intensity={0.5} />
+      <color attach="background" args={[inside ? '#0a0c10' : '#06070a']} />
+      <hemisphereLight args={['#dfe8ff', '#160c06', inside ? 0.45 : 0.9]} />
+      <directionalLight position={[1.5, 3, 3]} intensity={inside ? 1.1 : 2.1} color="#fff4ea" />
+      <directionalLight position={[-3, 2, -2.5]} intensity={2.6} color={ORANGE} />
+      <directionalLight position={[3, 1.5, -2.5]} intensity={1.6} color="#3ad7ff" />
 
       <CameraRig focus={focus} nonce={focusNonce} side={s} />
 
@@ -223,8 +253,8 @@ function Scene({
                 show={show}
                 mats={mats}
                 inside={inside}
-                twinUrl={inside ? '' : twinUrl ?? ''}
-                onSurface={setSurface}
+                twinUrl={twinUrl ?? ''}
+                onSurface={handleSurface}
               />
             </Suspense>
           </ModelBoundary>
@@ -242,7 +272,7 @@ function Scene({
         <PointerMarker key={p.id} pointer={p} />
       ))}
 
-      <GroundShadow />
+      <Platform />
     </>
   );
 }
@@ -250,14 +280,50 @@ function Scene({
 type Visible = { muscle: boolean; bone: boolean; vessel: boolean; implant: boolean };
 type Mats = TwinMaterials;
 
-function GroundShadow() {
+/** Floor grid, contact shadow, and slowly turning range rings under the twin. */
+function Platform() {
   const texture = useMemo(createGroundShadowTexture, []);
   useEffect(() => () => texture.dispose(), [texture]);
+  const arcs = useRef<THREE.Group>(null);
+  useFrame((_, dt) => {
+    if (arcs.current) arcs.current.rotation.z += dt * 0.12;
+  });
+
   return (
-    <mesh position={[0, -0.005, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={noRaycast}>
-      <planeGeometry args={[1.05, 0.55]} />
-      <meshBasicMaterial map={texture} transparent opacity={0.3} depthWrite={false} />
-    </mesh>
+    <group>
+      <Grid
+        position={[0, -0.002, 0]}
+        args={[8, 8]}
+        cellSize={0.1}
+        cellThickness={0.5}
+        cellColor="#3a2412"
+        sectionSize={0.5}
+        sectionThickness={0.9}
+        sectionColor="#8a3f0c"
+        fadeDistance={5.5}
+        fadeStrength={2.2}
+        infiniteGrid
+        raycast={noRaycast}
+      />
+      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={noRaycast}>
+        <planeGeometry args={[1.1, 0.6]} />
+        <meshBasicMaterial map={texture} transparent opacity={0.65} depthWrite={false} />
+      </mesh>
+      <group rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
+        <mesh raycast={noRaycast}>
+          <ringGeometry args={[0.44, 0.447, 128]} />
+          <meshBasicMaterial color={ORANGE} transparent opacity={0.8} depthWrite={false} />
+        </mesh>
+        <group ref={arcs}>
+          {[0, 1, 2].map(i => (
+            <mesh key={i} rotation={[0, 0, (i * Math.PI * 2) / 3]} raycast={noRaycast}>
+              <ringGeometry args={[0.49, 0.5, 48, 1, 0, Math.PI / 3]} />
+              <meshBasicMaterial color={ORANGE} transparent opacity={0.45} depthWrite={false} />
+            </mesh>
+          ))}
+        </group>
+      </group>
+    </group>
   );
 }
 
@@ -289,30 +355,71 @@ function RealBody({
   mats: Mats;
   inside: boolean;
   twinUrl: string;
-  onSurface: (o: THREE.Object3D | null) => void;
+  onSurface: (o: THREE.Object3D, kind: SkinKind) => void;
 }) {
   const geo = useAnatomy(side);
-  const skinRef = useCallback((m: THREE.Mesh | null) => m && onSurface(m), [onSurface]);
-  const skin = geo.skin && (
-    <mesh ref={skinRef} geometry={geo.skin} material={mats.realSkin} userData={{ tappable: true }} renderOrder={3} />
+  const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
+  const onFail = useCallback(
+    (url: string) => setFailedUrls(cur => (cur[url] ? cur : { ...cur, [url]: true })),
+    []
   );
+  const height = useMemo(() => {
+    if (!geo.skin) return 1.72;
+    geo.skin.computeBoundingBox();
+    const b = geo.skin.boundingBox!;
+    return b.max.y - b.min.y;
+  }, [geo.skin]);
+  const skinRef = useCallback((m: THREE.Mesh | null) => m && onSurface(m, 'anatomy'), [onSurface]);
+  const onReference = useCallback((o: THREE.Object3D) => onSurface(o, 'reference'), [onSurface]);
+  const onScan = useCallback((o: THREE.Object3D) => onSurface(o, 'scan'), [onSurface]);
+  const failExterior = useCallback(() => onFail(EXTERIOR_URL), [onFail]);
+
+  const anatomySkin = geo.skin && (
+    <mesh
+      ref={skinRef}
+      geometry={geo.skin}
+      material={inside ? mats.glassSkin : mats.realSkin}
+      userData={{ tappable: true }}
+      renderOrder={inside ? 4 : 3}
+    />
+  );
+  const anatomyOutside = (
+    <>
+      {anatomySkin}
+      <Shorts material={mats.shorts} />
+    </>
+  );
+  // Tier order for the Outside view: personal Meshy scan -> Meshy reference body -> anatomy skin.
+  const reference = failedUrls[EXTERIOR_URL] ? (
+    anatomyOutside
+  ) : (
+    <ModelBoundary resetKey={EXTERIOR_URL} fallback={anatomyOutside}>
+      <Suspense fallback={anatomyOutside}>
+        <PhotoSkin url={EXTERIOR_URL} height={height} onReady={onReference} onError={failExterior} />
+      </Suspense>
+    </ModelBoundary>
+  );
+  const scan =
+    twinUrl && !failedUrls[twinUrl] ? (
+      <ModelBoundary resetKey={twinUrl} fallback={reference}>
+        <Suspense fallback={reference}>
+          <PhotoSkin
+            url={twinUrl}
+            height={height}
+            onReady={onScan}
+            onError={() => twinUrl && onFail(twinUrl)}
+          />
+        </Suspense>
+      </ModelBoundary>
+    ) : null;
+  const exterior = twinUrl ? (failedUrls[twinUrl] ? reference : scan) : reference;
+
   const inner = (g: THREE.BufferGeometry | undefined, m: THREE.Material, on: boolean, order = 0) =>
     on && g ? <mesh geometry={g} material={m} raycast={noRaycast} renderOrder={order} /> : null;
 
   return (
     <>
-      {twinUrl ? (
-        <ModelBoundary resetKey={twinUrl} fallback={skin}>
-          <Suspense fallback={skin}>
-            <PhotoSkin url={twinUrl} onReady={onSurface} />
-          </Suspense>
-        </ModelBoundary>
-      ) : (
-        <>
-          {skin}
-          {!inside && <Shorts material={mats.shorts} />}
-        </>
-      )}
+      {inside ? anatomySkin : exterior}
       {inner(geo.muscle, mats.muscle, show.muscle, 2)}
       {inner(geo.bone, mats.bone, show.bone)}
       {inner(geo.artery, mats.artery, show.vessel)}
@@ -365,6 +472,7 @@ function CameraRig({ focus, nonce, side }: { focus: 'body' | 'knee'; nonce: numb
       enablePan={false}
       minDistance={0.45}
       maxDistance={Math.max(4, bodyDistance * 1.5)}
+      maxPolarAngle={Math.PI * 0.55}
       onStart={() => (goal.current = null)}
     />
   );
@@ -399,7 +507,6 @@ function PartMesh({ part, material, tappable, renderOrder = 0 }: {
       renderOrder={renderOrder}
       userData={{ part }}
       raycast={tappable ? undefined : noRaycast}
-      castShadow={tappable}
     >
       {geometryFor(part.shape)}
     </mesh>
@@ -407,14 +514,47 @@ function PartMesh({ part, material, tappable, renderOrder = 0 }: {
 }
 
 function severityColor(sev: number) {
-  if (sev >= 7) return '#e5484d';
-  if (sev >= 4) return '#f5a524';
-  return '#30a46c';
+  if (sev >= 7) return '#ff2a3d';
+  if (sev >= 4) return '#ffb020';
+  return '#5cff9d';
+}
+
+/** Flat hexagon outline that always faces the camera. */
+function HexRing({ r, width, color, opacity = 1, order }: { r: number; width: number; color: string; opacity?: number; order: number }) {
+  return (
+    <Billboard>
+      <mesh renderOrder={order} raycast={noRaycast} rotation={[0, 0, Math.PI / 6]}>
+        <ringGeometry args={[r - width, r, 6]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} depthTest={false} depthWrite={false} />
+      </mesh>
+    </Billboard>
+  );
+}
+
+/** Expanding hexagon pulse, like a sensor ping. Owns its material ref safely. */
+function PulseRing({ color, speed = 0.7 }: { color: string; speed?: number }) {
+  const mat = useRef<THREE.MeshBasicMaterial>(null);
+  const group = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    const t = (clock.elapsedTime * speed) % 1;
+    if (group.current) group.current.scale.setScalar(1 + t * 0.9);
+    if (mat.current) mat.current.opacity = 0.6 * (1 - t);
+  });
+  return (
+    <group ref={group}>
+      <Billboard>
+        <mesh renderOrder={7} raycast={noRaycast} rotation={[0, 0, Math.PI / 6]}>
+          <ringGeometry args={[0.017, 0.02, 6]} />
+          <meshBasicMaterial ref={mat} color={color} transparent opacity={0.5} depthTest={false} depthWrite={false} />
+        </mesh>
+      </Billboard>
+    </group>
+  );
 }
 
 function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onSelect?: (id: string) => void }) {
   const [hover, setHover] = useState(false);
-  const color = pin.pending ? '#3e63dd' : severityColor(pin.severity);
+  const color = pin.pending ? ORANGE : severityColor(pin.severity);
 
   return (
     <group position={[pin.x, pin.y, pin.z]}>
@@ -427,15 +567,12 @@ function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onS
         onPointerOver={() => setHover(true)}
         onPointerOut={() => setHover(false)}
       >
-        <sphereGeometry args={[selected ? 0.02 : 0.015, 20, 12]} />
+        <sphereGeometry args={[selected ? 0.014 : 0.011, 20, 12]} />
         <meshBasicMaterial color={color} depthTest={false} depthWrite={false} />
       </mesh>
-      <mesh renderOrder={9} raycast={noRaycast}>
-        <sphereGeometry args={[0.028, 20, 12]} />
-        <meshBasicMaterial color={color} depthTest={false} depthWrite={false} transparent opacity={0.2} />
-      </mesh>
+      <HexRing r={selected ? 0.032 : 0.026} width={0.004} color={color} opacity={0.9} order={9} />
       {(hover || selected || pin.pending) && (
-        <Html center zIndexRange={[4, 0]} distanceFactor={0.85} position={[0, 0.05, 0]} style={{ pointerEvents: 'none' }}>
+        <Html center zIndexRange={[4, 0]} distanceFactor={0.85} position={[0, 0.055, 0]} style={{ pointerEvents: 'none' }}>
           <div className="pin-label">{pin.label}</div>
         </Html>
       )}
@@ -444,9 +581,9 @@ function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onS
 }
 
 const TONE_COLOR: Record<HotspotTone, string> = {
-  info: '#6ea8ff',
-  watch: '#f5a524',
-  alarm: '#e5484d',
+  info: '#3ad7ff',
+  watch: '#ffb020',
+  alarm: '#ff2a3d',
 };
 
 function Hotspot({
@@ -486,13 +623,11 @@ function Hotspot({
         }}
         onPointerOut={() => (document.body.style.cursor = '')}
       >
-        <sphereGeometry args={[open ? 0.012 : 0.009, 20, 12]} />
+        <sphereGeometry args={[open ? 0.011 : 0.008, 20, 12]} />
         <meshBasicMaterial color={open ? '#ffffff' : color} depthWrite={false} />
       </mesh>
-      <mesh renderOrder={7} raycast={noRaycast}>
-        <sphereGeometry args={[0.024, 20, 12]} />
-        <meshBasicMaterial color={color} transparent opacity={0.24} depthWrite={false} />
-      </mesh>
+      <HexRing r={0.02} width={0.003} color={color} order={7} />
+      <PulseRing color={color} speed={spot.tone === 'alarm' ? 1.4 : 0.7} />
       {open && (
         <Html zIndexRange={[6, 0]} style={{ pointerEvents: 'none' }}>
           <div className={`callout callout--${spot.tone} ${flip ? 'callout--flip' : ''}`}>
@@ -514,12 +649,9 @@ function Hotspot({
 function PointerMarker({ pointer }: { pointer: TwinPointer }) {
   return (
     <group position={[pointer.x, pointer.y, pointer.z]}>
-      <mesh renderOrder={11} raycast={noRaycast}>
-        <torusGeometry args={[0.022, 0.004, 8, 32]} />
-        <meshBasicMaterial color={pointer.color} depthTest={false} depthWrite={false} />
-      </mesh>
-      <Html center zIndexRange={[4, 0]} distanceFactor={0.85} position={[0, 0.045, 0]} style={{ pointerEvents: 'none' }}>
-        <div className="pointer-label" style={{ background: pointer.color }}>
+      <HexRing r={0.024} width={0.004} color={pointer.color} order={11} />
+      <Html center zIndexRange={[4, 0]} distanceFactor={0.85} position={[0, 0.05, 0]} style={{ pointerEvents: 'none' }}>
+        <div className="pointer-label" style={{ '--pointer': pointer.color } as React.CSSProperties}>
           {pointer.name}
         </div>
       </Html>

@@ -1,4 +1,5 @@
-import { Component, useLayoutEffect, useMemo, type ReactNode } from 'react';
+import { Component, useEffect, useLayoutEffect, useMemo, type ReactNode } from 'react';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import landmarkData from './anatomy-landmarks.json';
@@ -6,6 +7,8 @@ import { SKIN, regionForHit, type HotspotId, type Part } from './bodyModel';
 
 export const ANATOMY_URL = '/models/anatomy.glb';
 export const ANATOMY_CREDIT = 'BodyParts3D © DBCLS · CC BY-SA 2.1 JP';
+/** Reference exterior made with Meshy image-to-3D from a generated photo of a fictional person. */
+export const EXTERIOR_URL = '/models/exterior.glb';
 
 export type AnatomyLayer = 'skin' | 'muscle' | 'bone' | 'artery' | 'vein';
 type Vec3 = [number, number, number];
@@ -97,14 +100,58 @@ export function Shorts({ material }: { material: THREE.Material }) {
   );
 }
 
-/** Loads a generated photo twin and scales it to a standing adult with feet at y=0. */
-export function PhotoSkin({ url, onReady }: { url: string; onReady: (o: THREE.Object3D) => void }) {
-  const gltf = useGLTF(url);
+type LoadResult = { gltf: THREE.Group } | { failed: true };
+type LoadState = { status: 'pending'; promise: Promise<LoadResult> } | { status: 'done'; result: LoadResult };
+const gltfCache = new Map<string, { current: LoadState }>();
+
+function readGltf(url: string): LoadState {
+  let cell = gltfCache.get(url);
+  if (!cell) {
+    const promise = new Promise<LoadResult>(resolve => {
+      // Always resolve: a loader failure must never escape as an uncaught async
+      // error, which would break the R3F render loop for the whole scene.
+      new GLTFLoader().load(url, gltf => resolve({ gltf: gltf.scene }), undefined, () => resolve({ failed: true }));
+    });
+    const created: { current: LoadState } = { current: { status: 'pending', promise } };
+    promise.then(result => {
+      created.current = { status: 'done', result };
+    });
+    gltfCache.set(url, created);
+    cell = created;
+  }
+  return cell.current;
+}
+
+/** Suspends until the GLB settles; load failures come back as `{ failed: true }`. */
+function useGltfSafe(url: string): LoadResult {
+  const entry = readGltf(url);
+  if (entry.status === 'pending') throw entry.promise;
+  return entry.result;
+}
+
+/** Loads a Meshy image-to-3D exterior and scales it to the reference anatomy, feet at y=0. */
+export function PhotoSkin({
+  url,
+  height = 1.72,
+  onReady,
+  onError,
+}: {
+  url: string;
+  height?: number;
+  onReady: (o: THREE.Object3D) => void;
+  onError: () => void;
+}) {
+  const load = useGltfSafe(url);
+  const failed = 'failed' in load;
+  useEffect(() => {
+    if (failed) onError();
+  }, [failed, onError]);
   const object = useMemo(() => {
-    const root = gltf.scene.clone(true);
+    if (failed) return null;
+    const root = load.gltf.clone(true);
     const box = new THREE.Box3().setFromObject(root);
     const size = box.getSize(new THREE.Vector3());
-    const s = 1.72 / Math.max(size.y, 1e-6);
+    const s = height / Math.max(size.y, 1e-6);
     const center = box.getCenter(new THREE.Vector3());
     const wrap = new THREE.Group();
     root.position.set(-center.x, -box.min.y, -center.z);
@@ -118,9 +165,12 @@ export function PhotoSkin({ url, onReady }: { url: string; onReady: (o: THREE.Ob
     });
     wrap.updateMatrixWorld(true);
     return wrap;
-  }, [gltf]);
-
-  useLayoutEffect(() => onReady(object), [object, onReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load, failed, height]);
+  useLayoutEffect(() => {
+    if (object) onReady(object);
+  }, [object, onReady]);
+  if (failed || !object) return null;
   return <primitive object={object} />;
 }
 

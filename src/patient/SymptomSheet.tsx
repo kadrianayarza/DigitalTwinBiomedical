@@ -68,8 +68,8 @@ export function SymptomSheet({ region, onCancel, onSubmit }: Props) {
       >
         <header className="sheet__head">
           <div>
-            <div className="eyebrow">New check-in</div>
-            <h2>{regionLabel(region)}</h2>
+            <div className="kicker">New check-in</div>
+            <h2 className="sheet__title">{regionLabel(region)}</h2>
           </div>
           <button type="button" className="btn btn--ghost" onClick={onCancel}>
             Cancel
@@ -87,15 +87,18 @@ export function SymptomSheet({ region, onCancel, onSubmit }: Props) {
             </Chip>
           </div>
           {emergency && (
-            <div className="banner banner--emergency">
-              <strong>Call 911 now.</strong> These can be signs of a blood clot in the lungs. Submit this check-in so
-              your nurse is alerted too, but do not wait for a reply.
+            <div className="banner banner--emergency" role="alert">
+              <span className="banner__title">Call 911 now</span>
+              <span>
+                These can be signs of a blood clot in the lungs. Submit this check-in so your nurse is alerted too, but
+                do not wait for a reply.
+              </span>
             </div>
           )}
         </section>
 
         <Field label="How bad is it right now?">
-          <div className="severity">
+          <div className="severity" style={{ '--sev': d.severity / 10 } as React.CSSProperties}>
             <input
               type="range"
               min={0}
@@ -161,7 +164,7 @@ export function SymptomSheet({ region, onCancel, onSubmit }: Props) {
         </div>
 
         <footer className="sheet__foot">
-          <p className="muted">Your nurse sees this right away. This app does not replace calling your care team.</p>
+          <p className="muted small">Your nurse sees this right away. This app does not replace calling your care team.</p>
           <button type="submit" className="btn btn--primary btn--lg">
             Send to my nurse
           </button>
