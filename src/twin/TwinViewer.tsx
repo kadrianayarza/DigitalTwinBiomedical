@@ -86,7 +86,7 @@ export function TwinViewer(props: Props) {
     : view === 'inside' || skinKind === 'anatomy'
       ? ANATOMY_CREDIT
       : skinKind === 'scan'
-        ? 'Personal scan · Meshy image-to-3D · shape is approximate'
+        ? 'Personal scan · photo to 3D · shape is approximate'
         : EXTERIOR_CREDIT;
 
   return (
@@ -115,7 +115,7 @@ export function TwinViewer(props: Props) {
       <div className="twin__hud" aria-hidden>
         <span className="twin__hudlabel">
           Twin · {view === 'outside' ? 'Exterior' : 'Interior'}
-          <em>{view === 'outside' && skinKind === 'scan' ? 'Meshy' : view === 'outside' && skinKind === 'reference' ? 'Reference' : 'Anatomy'}</em>
+          <em>{view === 'outside' && skinKind === 'scan' ? 'Personal' : view === 'outside' && skinKind === 'reference' ? 'Reference' : 'Anatomy'}</em>
         </span>
       </div>
 

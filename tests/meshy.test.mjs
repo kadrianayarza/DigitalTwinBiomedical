@@ -40,7 +40,7 @@ test('accepts a standard model override and safely encodes opaque task IDs', () 
 });
 
 test('a missing API key never sends a request', () => {
-  assert.throws(() => submitMeshyTask(() => assert.fail('unexpected request'), ' ', photo), /MESHY_API_KEY missing/);
+  assert.throws(() => submitMeshyTask(() => assert.fail('unexpected request'), ' ', photo), /API key missing/);
 });
 
 for (const result of [undefined, null, '', ' ', 123, '.', '..']) {
@@ -64,7 +64,7 @@ test('polls pending and in-progress tasks without uploading the photo again', ()
   };
   assert.match(pollMeshyTask(fetch, key, taskUrl).detail, /queue/);
   assert.deepEqual(pollMeshyTask(fetch, key, taskUrl), {
-    status: 'generating', detail: 'Meshy is building your 3D twin (38%).',
+    status: 'generating', detail: 'Building your 3D twin (38%).',
   });
   assert.deepEqual(pollMeshyTask(fetch, key, taskUrl), {
     status: 'ready', detail: 'Personal twin ready', twinUrl: 'https://assets.meshy.ai/model.glb',
@@ -75,7 +75,7 @@ test('polls pending and in-progress tasks without uploading the photo again', ()
 test('progress is bounded and missing progress does not display NaN', () => {
   assert.match(pollMeshyTask(() => response({ status: 'IN_PROGRESS', progress: 101 }), key, taskUrl).detail, /100%/);
   assert.match(pollMeshyTask(() => response({ status: 'IN_PROGRESS', progress: -5 }), key, taskUrl).detail, /0%/);
-  assert.equal(pollMeshyTask(() => response({ status: 'IN_PROGRESS' }), key, taskUrl).detail, 'Meshy is building your 3D twin.');
+  assert.equal(pollMeshyTask(() => response({ status: 'IN_PROGRESS' }), key, taskUrl).detail, 'Building your 3D twin.');
 });
 
 for (const status of ['FAILED', 'CANCELED', 'UNKNOWN', undefined]) {
@@ -89,7 +89,7 @@ for (const status of ['FAILED', 'CANCELED', 'UNKNOWN', undefined]) {
 
 for (const glb of [undefined, '', 'javascript:alert(1)', 'http://assets.meshy.ai/model.glb', 'https://secret@assets.meshy.ai/model.glb']) {
   test(`rejects an invalid generated model URL: ${glb}`, () => {
-    assert.throws(() => pollMeshyTask(() => response({ status: 'SUCCEEDED', model_urls: { glb } }), key, taskUrl), /valid GLB/);
+    assert.throws(() => pollMeshyTask(() => response({ status: 'SUCCEEDED', model_urls: { glb } }), key, taskUrl), /valid model/);
   });
 }
 
@@ -102,7 +102,7 @@ for (const url of [
   `${base}/`,
 ]) {
   test(`never forwards credentials to an untrusted task URL: ${url}`, () => {
-    assert.throws(() => pollMeshyTask(() => assert.fail('unexpected request'), key, url), /valid Meshy task/);
+    assert.throws(() => pollMeshyTask(() => assert.fail('unexpected request'), key, url), /valid twin task/);
   });
 }
 
@@ -126,7 +126,7 @@ for (const [status, retryable, message] of [
 test('invalid JSON is reported without echoing response content', () => {
   assert.throws(
     () => pollMeshyTask(() => ({ status: 200, text: () => `private-photo:${photo}` }), key, taskUrl),
-    error => error instanceof MeshyError && error.message === 'Meshy returned an invalid response.'
+    error => error instanceof MeshyError && error.message === 'The 3D service returned an invalid response.'
   );
 });
 

@@ -22,14 +22,14 @@ function readResponse(response: HttpResponse): Record<string, unknown> {
     switch (response.status) {
       case 401:
       case 403:
-        throw new MeshyError('Meshy rejected the server API key. Ask the app administrator to check MESHY_API_KEY.');
+        throw new MeshyError('The 3D service rejected the server API key. Ask the app administrator to check it.');
       case 402:
-        throw new MeshyError('The Meshy account needs more API credits.');
+        throw new MeshyError('The 3D service account needs more credits.');
       case 429:
-        throw new MeshyError('Meshy is busy. Please try again shortly.', true);
+        throw new MeshyError('The 3D service is busy. Please try again shortly.', true);
       default:
         throw new MeshyError(
-          response.status >= 500 ? 'Meshy is temporarily unavailable.' : `Meshy could not process the request (HTTP ${response.status}).`,
+          response.status >= 500 ? 'The 3D service is temporarily unavailable.' : `The 3D service could not process the request (HTTP ${response.status}).`,
           response.status >= 500
         );
     }
@@ -40,11 +40,11 @@ function readResponse(response: HttpResponse): Record<string, unknown> {
   } catch {
     // Never expose response bodies: they can contain the uploaded photo or account details.
   }
-  throw new MeshyError('Meshy returned an invalid response.');
+  throw new MeshyError('The 3D service returned an invalid response.');
 }
 
 function headers(key: string) {
-  if (!key.trim()) throw new MeshyError('Photo twins are not configured on this server (MESHY_API_KEY missing).');
+  if (!key.trim()) throw new MeshyError('Photo twins are not configured on this server (API key missing).');
   return { authorization: `Bearer ${key.trim()}`, 'content-type': 'application/json' };
 }
 
@@ -64,7 +64,7 @@ export function submitMeshyTask(fetch: MeshyFetch, key: string, photo: string, m
     }),
   }));
   if (typeof body.result !== 'string' || !body.result.trim() || body.result === '.' || body.result === '..') {
-    throw new MeshyError('Meshy did not return a task ID.');
+    throw new MeshyError('The 3D service did not return a task ID.');
   }
   return `${TASKS_URL}/${encodeURIComponent(body.result)}`;
 }
@@ -97,17 +97,17 @@ export function pollMeshyTask(fetch: MeshyFetch, key: string, statusUrl: string)
   const id = statusUrl.slice(prefix.length);
   // Credentials must never follow a provider-supplied URL to another host or endpoint.
   if (!statusUrl.startsWith(prefix) || !id || /[/?#]/.test(id) || id === '.' || id === '..') {
-    throw new MeshyError('This is not a valid Meshy task. Please generate a new twin.');
+    throw new MeshyError('This is not a valid twin task. Please generate a new twin.');
   }
   const body = readResponse(fetch(statusUrl, { method: 'GET', headers: headers(key) }));
   switch (body.status) {
     case 'PENDING':
-      return { status: 'generating', detail: 'Your photo is in the Meshy queue.' };
+      return { status: 'generating', detail: 'Your photo is in the queue.' };
     case 'IN_PROGRESS': {
       const progress = typeof body.progress === 'number' && Number.isFinite(body.progress)
         ? ` (${Math.round(Math.min(100, Math.max(0, body.progress)))}%)`
         : '';
-      return { status: 'generating', detail: `Meshy is building your 3D twin${progress}.` };
+      return { status: 'generating', detail: `Building your 3D twin${progress}.` };
     }
     case 'SUCCEEDED': {
       const models = body.model_urls as { glb?: unknown } | undefined;
@@ -133,13 +133,13 @@ export function pollMeshyTask(fetch: MeshyFetch, key: string, statusUrl: string)
         '| chars 120-320:',
         first.slice(120, 320).replace(/\s+/g, ' ')
       );
-      throw new MeshyError('Meshy finished without a valid GLB model. Please try another photo.');
+      throw new MeshyError('The 3D service finished without a valid model. Please try another photo.');
     }
     case 'FAILED':
-      throw new MeshyError('Meshy could not build this photo. Try a clear, full-body photo.');
+      throw new MeshyError('Could not build a twin from this photo. Try a clear, full-body photo.');
     case 'CANCELED':
-      throw new MeshyError('Meshy canceled this task. Please try again.');
+      throw new MeshyError('The twin task was canceled. Please try again.');
     default:
-      throw new MeshyError('Meshy returned an unknown task status.');
+      throw new MeshyError('The 3D service returned an unknown task status.');
   }
 }

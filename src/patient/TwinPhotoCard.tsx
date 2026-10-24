@@ -54,15 +54,15 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
       <p className="muted small">
         {patient.twinUrl
           ? 'Your twin was made from your photo. The shape is approximate.'
-          : 'Add a full-body photo (standing, arms slightly out) and Meshy will shape the twin to look like you.'}
+          : 'Add a full-body photo (standing, arms slightly out) and we will shape the twin to look like you.'}
       </p>
 
       {busy && (
         <div className="twinphoto__status" role="status">
           <span className="spinner" aria-hidden />
           {uploading || status?.status === 'queued'
-            ? 'Submitting your photo to Meshy…'
-            : status?.detail || 'Meshy is building your 3D twin. This can take several minutes.'}
+            ? 'Submitting your photo…'
+            : status?.detail || 'Building your 3D twin. This can take several minutes.'}
         </div>
       )}
       {status?.status === 'error' && <div className="twinphoto__error">Couldn’t build your twin: {status.detail}</div>}
@@ -86,13 +86,13 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
         ref={input}
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        aria-label="Full-body photo for Meshy"
+        aria-label="Full-body photo for your twin"
         disabled={busy}
         hidden
         onChange={e => void onFile(e.target.files?.[0])}
       />
       <p className="muted tiny">
-        Meshy turns your photo into an approximate outside view. Your care team sees the twin. The inside layers are a
+        Your photo becomes an approximate outside view. Your care team sees the twin. The inside layers are a
         reference model, not your scan. Use non-sensitive photos for this demo.
       </p>
     </Panel>

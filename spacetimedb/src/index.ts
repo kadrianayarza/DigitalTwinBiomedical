@@ -548,7 +548,7 @@ export const requestTwin = spacetimedb.reducer(
       responseUrl: '',
       attempt: 0,
     });
-    audit(ctx, patientId, me.name, 'twin_requested', 'Photo submitted for Meshy 3D generation');
+    audit(ctx, patientId, me.name, 'twin_requested', 'Photo submitted for 3D twin generation');
   }
 );
 
@@ -603,14 +603,14 @@ export const runTwinJob = spacetimedb.procedure(
     try {
       if (!job.statusUrl) {
         const statusUrl = submitMeshyTask(fetch, key, job.photo, ctx.env.MESHY_MODEL || 'latest');
-        poll(statusUrl, 1, 'Your photo is in the Meshy queue.');
+        poll(statusUrl, 1, 'Your photo is in the queue.');
         return {};
       }
 
       const task = pollMeshyTask(fetch, key, job.statusUrl);
       if (task.status === 'generating') {
         if (job.attempt >= TWIN_MAX_POLLS) {
-          throw new MeshyError('Meshy took too long. Check the Meshy dashboard before starting another task.');
+          throw new MeshyError('The 3D twin took too long. Check the 3D service dashboard before starting another task.');
         }
         poll(job.statusUrl, job.attempt + 1, task.detail);
         return {};
@@ -620,9 +620,9 @@ export const runTwinJob = spacetimedb.procedure(
     } catch (e) {
       // Polls are safe to retry; never replay a potentially billable POST after a network error.
       if (job.statusUrl && job.attempt < TWIN_MAX_POLLS && (!(e instanceof MeshyError) || e.retryable)) {
-        poll(job.statusUrl, job.attempt + 1, 'Waiting for Meshy to reconnect…');
+        poll(job.statusUrl, job.attempt + 1, 'Waiting for the 3D service to reconnect…');
       } else {
-        finish('error', e instanceof MeshyError ? e.message : 'Could not confirm the Meshy request. Check the Meshy dashboard before trying again.');
+        finish('error', e instanceof MeshyError ? e.message : 'Could not confirm the 3D twin request. Check the 3D service dashboard before trying again.');
       }
     }
     return {};
