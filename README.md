@@ -17,8 +17,8 @@ spacetime server add twinlocal --url http://127.0.0.1:3100 --no-fingerprint   # 
 npm install && (cd spacetimedb && npm install)
 spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
 
-# Optional: real Claude drafts instead of template drafts
-ANTHROPIC_API_KEY=sk-ant-... spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
+# Optional: real Claude drafts instead of template drafts, and photo-to-3D twins via fal
+ANTHROPIC_API_KEY=sk-ant-... FAL_KEY=... spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
 
 # 3. Client
 npm run dev
@@ -39,6 +39,7 @@ After changing tables or reducers: `npm run spacetime:publish:local && npm run s
 | Clinical thresholds, triage prompt, Claude tool schema | `spacetimedb/src/clinical.ts` |
 | Claude call (scheduled procedure, key never reaches the browser) | `runSbarJob` in `spacetimedb/src/index.ts` |
 | 3D twin: layers, implant, tap-to-region | `src/twin/` |
+| Photo twin (fal image-to-3D, scheduled procedure) | `requestTwin` / `runTwinJob` in `spacetimedb/src/index.ts`, `src/patient/TwinPhotoCard.tsx` |
 | Patient check-in (OPQRST) | `src/patient/` |
 | Nurse dashboard, SBAR approval, impact metrics | `src/nurse/` |
 
@@ -47,5 +48,11 @@ Safety model: fixed rules run first and set a priority floor; Claude can raise p
 ## Demo controls
 
 Nurse dashboard → "Demo controls": switch a patient's simulated pod to the blood clot, infection, or stalled range-of-motion pattern, or reset all demo data.
+
+## Anatomy model
+
+`public/models/anatomy.glb` (skin, muscles, bones, arteries, veins; 2.2 MB, meshopt-compressed) is built from BodyParts3D, (c) The Database Center for Life Science, licensed under [CC Attribution-Share Alike 2.1 Japan](http://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html). The GLB is a derived work under the same license; the app shows the credit on the twin. To rebuild it, download `isa_BP3D_4.0_obj_99.zip` and `isa_element_parts.txt` from the BodyParts3D archive into `~/.cache/bp3d` (unzip into `isa/`), then run `npm run build:anatomy`. This also regenerates `src/twin/anatomy-landmarks.json`, which places the implant and snaps hotspots.
+
+If the GLB fails to load, the twin falls back to the procedural body in `src/twin/bodyModel.ts`.
 
 Prototype with fictional patients. Not a medical device.

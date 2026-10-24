@@ -1,19 +1,20 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { ContactShadows, Html, OrbitControls, Sparkles } from '@react-three/drei';
+import { Bvh, ContactShadows, Html, OrbitControls, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+import { BONE, MUSCLE, SKIN, implantParts, regionForHit, regionLabel, type HotspotId, type Part } from './bodyModel';
 import {
-  BONE,
-  KNEE_TARGET,
-  MUSCLE,
-  SKIN,
-  implantParts,
-  regionForHit,
-  regionLabel,
-  type HotspotId,
-  type Part,
-} from './bodyModel';
+  ANATOMY_CREDIT,
+  Implant,
+  ModelBoundary,
+  PhotoSkin,
+  Shorts,
+  kneeTarget,
+  regionForPoint,
+  snapAnchors,
+  useAnatomy,
+} from './anatomy';
 import type { HotspotTone, TwinHotspot } from './hotspots';
 
 export type TwinPin = {
@@ -37,23 +38,31 @@ type Props = {
   onTap?: (region: string, point: [number, number, number]) => void;
   onHover?: (point: [number, number, number] | null) => void;
   hotspots?: TwinHotspot[];
+  /** Generated photo twin (GLB). Empty uses the reference body. */
+  twinUrl?: string;
   initialMode?: Mode;
   initialFocus?: 'body' | 'knee';
   compact?: boolean;
 };
 
 type Mode = 'outside' | 'inside';
-type Layer = 'muscle' | 'bone' | 'implant';
+type Layer = 'muscle' | 'bone' | 'vessel' | 'implant';
 
 const LAYERS: Array<{ id: Layer; label: string; color: string }> = [
   { id: 'muscle', label: 'Muscles', color: '#b8483f' },
   { id: 'bone', label: 'Bones', color: '#d9cfb8' },
+  { id: 'vessel', label: 'Vessels', color: 'linear-gradient(90deg, #c8323c 50%, #3a5bc7 50%)' },
   { id: 'implant', label: 'Implant', color: '#5aa9ff' },
 ];
 
 export function TwinViewer(props: Props) {
   const [mode, setMode] = useState<Mode>(props.initialMode ?? 'outside');
-  const [layers, setLayers] = useState<Record<Layer, boolean>>({ muscle: true, bone: true, implant: true });
+  const [layers, setLayers] = useState<Record<Layer, boolean>>({
+    muscle: true,
+    bone: true,
+    vessel: false,
+    implant: true,
+  });
   const [focus, setFocus] = useState<'body' | 'knee'>(props.initialFocus ?? 'body');
   const [focusNonce, setFocusNonce] = useState(0);
   const [openSpot, setOpenSpot] = useState<HotspotId | null>(null);
@@ -124,7 +133,9 @@ export function TwinViewer(props: Props) {
           ))}
         </div>
       </div>
-      <div className="twin__credit">Reference anatomy · not to scale</div>
+      <div className="twin__credit">
+        {mode === 'outside' && props.twinUrl ? 'Generated from your photo · shape is approximate' : ANATOMY_CREDIT}
+      </div>
     </div>
   );
 }
@@ -138,6 +149,7 @@ function Scene({
   onTap,
   onHover,
   hotspots = [],
+  twinUrl,
   mode,
   layers,
   focus,
@@ -163,45 +175,59 @@ function Scene({
         emissive: new THREE.Color('#ff6a3d'),
         emissiveIntensity: 0.08,
       }),
+      realSkin: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, transparent: true }),
+      shorts: new THREE.MeshStandardMaterial({ color: '#4b5f7a', roughness: 0.85, side: THREE.DoubleSide }),
       muscle: new THREE.MeshStandardMaterial({ color: '#b8483f', roughness: 0.55, transparent: true }),
       bone: new THREE.MeshStandardMaterial({ color: '#f1ead9', roughness: 0.8 }),
+      insert: new THREE.MeshStandardMaterial({ color: '#f4f7fb', roughness: 0.5, transparent: true, opacity: 0.95, depthTest: false }),
+      artery: new THREE.MeshStandardMaterial({ color: '#c8323c', roughness: 0.45 }),
+      vein: new THREE.MeshStandardMaterial({ color: '#3a5bc7', roughness: 0.45 }),
       implant: new THREE.MeshStandardMaterial({
         color: '#c9d3dd',
-        metalness: 0.95,
-        roughness: 0.2,
+        metalness: 0.9,
+        roughness: 0.25,
         emissive: new THREE.Color('#5aa9ff'),
-        emissiveIntensity: 0.25,
+        emissiveIntensity: 0.35,
+        transparent: true,
+        opacity: 0.95,
+        depthTest: false,
       }),
     }),
     []
   );
 
   const inside = mode === 'inside';
-  const showMuscle = inside && layers.muscle;
-  const showBone = inside && layers.bone;
-  const showImplant = inside && layers.implant;
+  const show: Visible = {
+    muscle: inside && layers.muscle,
+    bone: inside && layers.bone,
+    vessel: inside && layers.vessel,
+    implant: inside && layers.implant,
+  };
 
   useEffect(() => {
-    for (const m of [mats.skin, mats.skinSurgical]) {
-      m.opacity = inside ? 0.12 : 1;
+    for (const m of [mats.skin, mats.skinSurgical, mats.realSkin]) {
+      m.opacity = inside ? 0.1 : 1;
       m.depthWrite = !inside;
       m.needsUpdate = true;
     }
-    const seeThrough = showBone || showImplant;
-    mats.muscle.opacity = seeThrough ? 0.3 : 1;
+    const seeThrough = show.bone || show.vessel;
+    mats.muscle.opacity = seeThrough ? 0.45 : 1;
     mats.muscle.depthWrite = !seeThrough;
     mats.muscle.needsUpdate = true;
-  }, [inside, showBone, showImplant, mats]);
+  }, [inside, show.bone, show.vessel, mats]);
+
+  const [surface, setSurface] = useState<THREE.Object3D | null>(null);
+  const anchors = useMemo(() => snapAnchors(s, surface), [s, surface]);
 
   const lastHover = useRef(0);
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     if (!onTap || e.delta > 6) return;
     const part = e.object.userData.part as Part | undefined;
-    if (!part) return;
+    if (!part && !e.object.userData.tappable) return;
     e.stopPropagation();
     const p: [number, number, number] = [e.point.x, e.point.y, e.point.z];
-    onTap(regionForHit(part, p), p);
+    onTap(part ? regionForHit(part, p) : regionForPoint(p), p);
   };
 
   const handleMove = (e: ThreeEvent<PointerEvent>) => {
@@ -212,6 +238,8 @@ function Scene({
     onHover([e.point.x, e.point.y, e.point.z]);
   };
 
+  const procedural = <ProceduralBody side={s} show={show} mats={mats} />;
+
   return (
     <>
       <color attach="background" args={[inside ? '#f8f2f2' : '#f4f7fa']} />
@@ -221,27 +249,25 @@ function Scene({
 
       <CameraRig focus={focus} nonce={focusNonce} side={s} />
 
-      <group
-        onClick={handleClick}
-        onPointerMove={handleMove}
-        onPointerOut={() => onHover?.(null)}
-      >
-        {SKIN.map(part => (
-          <PartMesh
-            key={part.key}
-            part={part}
-            material={part.side === s && (part.region === 'knee' || part.region === 'thigh' || part.region === 'calf') ? mats.skinSurgical : mats.skin}
-            tappable
-          />
-        ))}
-      </group>
-
-      {showMuscle && MUSCLE.map(part => <PartMesh key={part.key} part={part} material={mats.muscle} />)}
-      {showBone && BONE.map(part => <PartMesh key={part.key} part={part} material={mats.bone} />)}
-      {showImplant && implantParts(s).map(part => <PartMesh key={part.key} part={part} material={mats.implant} />)}
+      <Bvh firstHitOnly>
+        <group onClick={handleClick} onPointerMove={handleMove} onPointerOut={() => onHover?.(null)}>
+          <ModelBoundary fallback={procedural}>
+            <Suspense fallback={procedural}>
+              <RealBody
+                side={s}
+                show={show}
+                mats={mats}
+                inside={inside}
+                twinUrl={inside ? '' : twinUrl ?? ''}
+                onSurface={setSurface}
+              />
+            </Suspense>
+          </ModelBoundary>
+        </group>
+      </Bvh>
 
       {hotspots.map(h => (
-        <Hotspot key={h.id} spot={h} open={openSpot === h.id} onToggle={onToggleSpot} />
+        <Hotspot key={h.id} spot={h} point={anchors[h.id]} open={openSpot === h.id} onToggle={onToggleSpot} />
       ))}
 
       <Sparkles count={36} scale={[3.2, 2.2, 2]} position={[0, 1.05, -0.6]} size={1.6} speed={0.18} opacity={0.45} color="#9aa6b2" />
@@ -258,6 +284,73 @@ function Scene({
   );
 }
 
+type Visible = { muscle: boolean; bone: boolean; vessel: boolean; implant: boolean };
+type Mats = Record<
+  'skin' | 'skinSurgical' | 'realSkin' | 'shorts' | 'muscle' | 'bone' | 'artery' | 'vein' | 'implant' | 'insert',
+  THREE.MeshStandardMaterial
+>;
+
+/** Primitive stand-in shown while anatomy.glb loads, or if it fails. */
+function ProceduralBody({ side, show, mats }: { side: 'l' | 'r'; show: Visible; mats: Mats }) {
+  const surgical = (p: Part) => p.side === side && (p.region === 'knee' || p.region === 'thigh' || p.region === 'calf');
+  return (
+    <>
+      {SKIN.map(part => (
+        <PartMesh key={part.key} part={part} material={surgical(part) ? mats.skinSurgical : mats.skin} tappable />
+      ))}
+      {show.muscle && MUSCLE.map(part => <PartMesh key={part.key} part={part} material={mats.muscle} />)}
+      {show.bone && BONE.map(part => <PartMesh key={part.key} part={part} material={mats.bone} />)}
+      {show.implant && implantParts(side).map(part => <PartMesh key={part.key} part={part} material={mats.implant} />)}
+    </>
+  );
+}
+
+function RealBody({
+  side,
+  show,
+  mats,
+  inside,
+  twinUrl,
+  onSurface,
+}: {
+  side: 'l' | 'r';
+  show: Visible;
+  mats: Mats;
+  inside: boolean;
+  twinUrl: string;
+  onSurface: (o: THREE.Object3D | null) => void;
+}) {
+  const geo = useAnatomy(side);
+  const skinRef = useCallback((m: THREE.Mesh | null) => m && onSurface(m), [onSurface]);
+  const skin = geo.skin && (
+    <mesh ref={skinRef} geometry={geo.skin} material={mats.realSkin} userData={{ tappable: true }} castShadow />
+  );
+  const inner = (g: THREE.BufferGeometry | undefined, m: THREE.Material, on: boolean) =>
+    on && g ? <mesh geometry={g} material={m} raycast={noRaycast} /> : null;
+
+  return (
+    <>
+      {twinUrl ? (
+        <ModelBoundary resetKey={twinUrl} fallback={skin}>
+          <Suspense fallback={skin}>
+            <PhotoSkin url={twinUrl} onReady={onSurface} />
+          </Suspense>
+        </ModelBoundary>
+      ) : (
+        <>
+          {skin}
+          {!inside && <Shorts material={mats.shorts} />}
+        </>
+      )}
+      {inner(geo.muscle, mats.muscle, show.muscle)}
+      {inner(geo.bone, mats.bone, show.bone)}
+      {inner(geo.artery, mats.artery, show.vessel)}
+      {inner(geo.vein, mats.vein, show.vessel)}
+      {show.implant && <Implant side={side} metal={mats.implant} insert={mats.insert} />}
+    </>
+  );
+}
+
 function CameraRig({ focus, nonce, side }: { focus: 'body' | 'knee'; nonce: number; side: 'l' | 'r' }) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera } = useThree();
@@ -265,7 +358,7 @@ function CameraRig({ focus, nonce, side }: { focus: 'body' | 'knee'; nonce: numb
 
   useEffect(() => {
     if (focus === 'knee') {
-      const [x, y, z] = KNEE_TARGET(side);
+      const [x, y, z] = kneeTarget(side);
       goal.current = {
         target: new THREE.Vector3(x, y, z),
         pos: new THREE.Vector3(x + 0.45, y + 0.2, z + 1.15),
@@ -384,7 +477,17 @@ const TONE_COLOR: Record<HotspotTone, string> = {
   alarm: '#e5484d',
 };
 
-function Hotspot({ spot, open, onToggle }: { spot: TwinHotspot; open: boolean; onToggle: (id: HotspotId) => void }) {
+function Hotspot({
+  spot,
+  point,
+  open,
+  onToggle,
+}: {
+  spot: TwinHotspot;
+  point: [number, number, number];
+  open: boolean;
+  onToggle: (id: HotspotId) => void;
+}) {
   const halo = useRef<THREE.Mesh>(null);
   const color = TONE_COLOR[spot.tone];
   const [flip, setFlip] = useState(false);
@@ -392,17 +495,17 @@ function Hotspot({ spot, open, onToggle }: { spot: TwinHotspot; open: boolean; o
 
   useFrame(({ clock, camera }) => {
     if (open) {
-      const onRight = projected.set(...spot.point).project(camera).x > 0;
+      const onRight = projected.set(...point).project(camera).x > 0;
       if (onRight !== flip) setFlip(onRight);
     }
     if (!halo.current) return;
-    const t = (Math.sin(clock.elapsedTime * 2.4 + spot.point[1] * 9) + 1) / 2;
+    const t = (Math.sin(clock.elapsedTime * 2.4 + point[1] * 9) + 1) / 2;
     halo.current.scale.setScalar(1 + t * 0.6);
     (halo.current.material as THREE.MeshBasicMaterial).opacity = 0.18 + 0.22 * (1 - t);
   });
 
   return (
-    <group position={spot.point}>
+    <group position={point}>
       <mesh
         renderOrder={8}
         onClick={e => {

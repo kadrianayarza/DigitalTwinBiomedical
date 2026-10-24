@@ -166,7 +166,8 @@ function PatientDetail({
               selectedPinId={selectedPin}
               onSelectPin={onSelectPin}
               onHover={onHover}
-              hotspots={buildHotspots({ side: patient.side === 'left' ? 'left' : 'right', vitals, audience: 'nurse' })}
+              twinUrl={patient.twinUrl}
+              hotspots={buildHotspots({ vitals, audience: 'nurse' })}
               initialFocus="knee"
               compact
             />

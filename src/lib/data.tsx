@@ -13,7 +13,8 @@ function useAllTables() {
   const [audit] = useTable(tables.auditEvent);
   const [presence] = useTable(tables.presence);
   const [sims] = useTable(tables.simState);
-  return { patients, patientsReady, profiles, symptoms, vitals, alerts, reports, audit, presence, sims };
+  const [twinStatuses] = useTable(tables.twinStatus);
+  return { patients, patientsReady, profiles, symptoms, vitals, alerts, reports, audit, presence, sims, twinStatuses };
 }
 
 export type TwinData = ReturnType<typeof useAllTables> & {

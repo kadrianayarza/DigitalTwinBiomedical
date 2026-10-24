@@ -19,8 +19,16 @@ Screenshots: _add here_
 
 **~10:15 PM PT — Interaction research with REA, then twin UX pass**
 - Used [REA](https://github.com/morluto/rea) (`rea-agents` 6.7.0) through a throwaway Chrome profile to study the interaction design of neal.fun/about, our inspiration: `inspect-web-page` (DOM + accessibility tree), `analyze-web-bundle` (routes, endpoints, renderer hints), and `capture-web-screenshot` before and after toggling views. Only the patterns were studied; no code or assets were taken.
-- What we learned: a two-level view model (Outside/Inside pill, then independent layer chips with color dots), glowing landmark hotspots that open a callout card with a leader line, a stats card where every live number shows a unit, a sparkline, and a "last updated" line, and a Draco-compressed GLB scan with a separate phone-sized model. The anatomy is BodyParts3D (CC BY 4.0).
+- What we learned: a two-level view model (Outside/Inside pill, then independent layer chips with color dots), glowing landmark hotspots that open a callout card with a leader line, a stats card where every live number shows a unit, a sparkline, and a "last updated" line, and a Draco-compressed GLB scan with a separate phone-sized model. The anatomy credit points to BodyParts3D.
 - Built in TwinCare: an Outside/Inside mode with Muscles, Bones, and Implant chips; clinical hotspots (incision, knee bend, calf, breathing) that show plain-language guidance to patients and live readings plus the matching rule to nurses, colored by the same thresholds the server rules use; ambient particles; a "Last updated" line on the Twin Pod card.
+
+## Sat Oct 24
+
+**~12:30 AM PT — Real anatomy and photo twins**
+- Replaced the procedural body with BodyParts3D meshes (skin, muscles, skeleton, arteries, veins). `scripts/build-anatomy.mjs` converts the OBJs to a single 2.2 MB GLB with gltf-transform (merge per layer, simplify, quantize, meshopt), and writes landmark positions (patella, femur, tibia, soleus, sternum) used to place the knee implant and snap hotspots onto the skin. Credit shown on the twin; the GLB keeps BodyParts3D's CC BY-SA 2.1 JP license.
+- Outside view: reference body with a tank top and shorts, and the surgical leg tinted. Inside view: translucent skin over real muscles, bones, and an optional vessel layer, with an x-ray implant overlay (femoral component, insert, tibial tray).
+- Tap-to-region now works on the real skin (nearest body region to the tapped point); verified "Right calf (front)".
+- Photo twin: the patient uploads a full-body photo; a `requestTwin` reducer queues a scheduled procedure that sends it to fal's image-to-3D model (TRELLIS by default), polls until done, and saves the GLB URL on the patient. The fal key is a server-side module environment value. Without a key the patient sees a clear "not configured" message (verified). The viewer normalizes any GLB to standing height and keeps the hotspots and tap-to-region working on it (verified with a test GLB).
 
 ## To log next
 - [ ] Grok Bot planning thread (screenshot)

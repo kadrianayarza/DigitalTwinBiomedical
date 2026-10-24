@@ -1,12 +1,11 @@
 import type { VitalSample } from '../module_bindings/types';
 import { CALF_BASELINE_C, INCISION_BASELINE_C } from '../components/PodVitals';
-import { hotspotAnchors, type HotspotId } from './bodyModel';
+import type { HotspotId } from './bodyModel';
 
 export type HotspotTone = 'info' | 'watch' | 'alarm';
 
 export type TwinHotspot = {
   id: HotspotId;
-  point: [number, number, number];
   kicker: string;
   body: string;
   meta?: string;
@@ -14,7 +13,6 @@ export type TwinHotspot = {
 };
 
 type Input = {
-  side: 'left' | 'right';
   vitals: readonly VitalSample[];
   audience: 'patient' | 'nurse';
 };
@@ -22,8 +20,7 @@ type Input = {
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(1)}`;
 
 /** Landmark callouts. Thresholds mirror the server rules in spacetimedb/src/clinical.ts. */
-export function buildHotspots({ side, vitals, audience }: Input): TwinHotspot[] {
-  const anchors = hotspotAnchors(side === 'left' ? 'l' : 'r');
+export function buildHotspots({ vitals, audience }: Input): TwinHotspot[] {
   const last = vitals[vitals.length - 1];
   const recent = vitals.slice(-5);
   const avg = (f: (v: VitalSample) => number) =>
@@ -48,7 +45,6 @@ export function buildHotspots({ side, vitals, audience }: Input): TwinHotspot[] 
     return [
       {
         id: 'incision',
-        point: anchors.incision,
         kicker: 'Incision',
         body: 'Some warmth, bruising and swelling are normal for a few weeks. Tap here if redness spreads, it drains, or you feel feverish.',
         meta:
@@ -61,7 +57,6 @@ export function buildHotspots({ side, vitals, audience }: Input): TwinHotspot[] 
       },
       {
         id: 'bend',
-        point: anchors.bend,
         kicker: 'Knee bend',
         body: 'Bending a little more each day helps your new knee heal. Follow the exercise plan from your surgeon.',
         meta: bestBend === undefined ? undefined : `Pod: best bend lately ${Math.round(bestBend)}°.`,
@@ -69,14 +64,12 @@ export function buildHotspots({ side, vitals, audience }: Input): TwinHotspot[] 
       },
       {
         id: 'calf',
-        point: anchors.calf,
         kicker: 'Calf',
         body: 'New calf pain, swelling or warmth can be a sign of a blood clot. Tap your calf to tell your nurse right away.',
         tone: calfTone === 'info' ? 'info' : 'watch',
       },
       {
         id: 'chest',
-        point: anchors.chest,
         kicker: 'Breathing',
         body: 'Chest pain or sudden trouble breathing is an emergency. Call 911.',
         tone: 'alarm',
@@ -87,7 +80,6 @@ export function buildHotspots({ side, vitals, audience }: Input): TwinHotspot[] 
   return [
     {
       id: 'incision',
-      point: anchors.incision,
       kicker: 'Incision temp',
       body: last ? `${last.incisionTempC.toFixed(1)} °C · ${signed(incisionDelta!)} °C vs baseline (5-sample mean)` : 'No pod data yet.',
       meta: 'Rule: +1.5 °C → same-day review',
@@ -95,7 +87,6 @@ export function buildHotspots({ side, vitals, audience }: Input): TwinHotspot[] 
     },
     {
       id: 'bend',
-      point: anchors.bend,
       kicker: 'Knee flexion',
       body: bestBend === undefined ? 'No pod data yet.' : `Max ${Math.round(bestBend)}° over last ${flexWindow.length} samples`,
       meta: 'Rule: < 60° after 40 samples → 24 h review',
@@ -103,7 +94,6 @@ export function buildHotspots({ side, vitals, audience }: Input): TwinHotspot[] 
     },
     {
       id: 'calf',
-      point: anchors.calf,
       kicker: 'Calf temp',
       body: last ? `${last.calfTempC.toFixed(1)} °C · ${signed(calfDelta!)} °C vs baseline (5-sample mean)` : 'No pod data yet.',
       meta: 'Rule: +1.0 °C → 24 h review; with symptoms → DVT same-day',
@@ -111,7 +101,6 @@ export function buildHotspots({ side, vitals, audience }: Input): TwinHotspot[] 
     },
     {
       id: 'chest',
-      point: anchors.chest,
       kicker: 'Cardiorespiratory',
       body: last ? `HR ${Math.round(hr!)} bpm · SpO₂ ${Math.round(spo2!)}% (5-sample mean)` : 'No pod data yet.',
       meta: 'Rules: SpO₂ < 92 → emergency · HR > 100 → same-day',

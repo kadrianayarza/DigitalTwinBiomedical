@@ -9,6 +9,7 @@ import { regionLabel } from '../twin/bodyModel';
 import { buildHotspots } from '../twin/hotspots';
 import { PodVitals } from '../components/PodVitals';
 import { SymptomSheet, type SymptomDraft } from './SymptomSheet';
+import { TwinPhotoCard } from './TwinPhotoCard';
 
 export function PatientView({ patient }: { patient: Patient }) {
   const data = useData();
@@ -122,7 +123,8 @@ export function PatientView({ patient }: { patient: Patient }) {
             side={patient.side === 'left' ? 'left' : 'right'}
             pins={pins}
             pointers={pointers}
-            hotspots={buildHotspots({ side: patient.side === 'left' ? 'left' : 'right', vitals, audience: 'patient' })}
+            twinUrl={patient.twinUrl}
+            hotspots={buildHotspots({ vitals, audience: 'patient' })}
             onTap={(region, point) => setPending({ region, point })}
             onHover={p =>
               void updatePointer({
@@ -138,6 +140,7 @@ export function PatientView({ patient }: { patient: Patient }) {
 
         <aside className="patient__side">
           <PodVitals vitals={vitals} />
+          <TwinPhotoCard patient={patient} />
 
           <div className="card">
             <div className="card__title">Your check-ins</div>

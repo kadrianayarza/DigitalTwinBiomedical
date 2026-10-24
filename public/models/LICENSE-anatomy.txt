@@ -1,0 +1,12 @@
+anatomy.glb
+
+Derived from BodyParts3D, (c) The Database Center for Life Science, licensed under
+CC Attribution-Share Alike 2.1 Japan.
+http://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html
+https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en
+
+Changes: selected skin, muscle, bone, artery, and vein meshes (BodyParts3D 4.0 "is_a" set),
+converted from millimetres to metres, re-oriented to Y-up, merged per layer, simplified,
+quantized, and meshopt-compressed (scripts/build-anatomy.mjs).
+
+This derived model is distributed under the same license.

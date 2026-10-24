@@ -116,17 +116,6 @@ export const KNEE_TARGET = (side: 'l' | 'r'): [number, number, number] => [
 
 export type HotspotId = 'incision' | 'bend' | 'calf' | 'chest';
 
-/** Surface points for clinical landmarks on the surgical side. */
-export function hotspotAnchors(side: 'l' | 'r'): Record<HotspotId, [number, number, number]> {
-  const sx = side === 'r' ? -1 : 1;
-  return {
-    incision: [sx * LEGS_X, 0.505, 0.07],
-    bend: [sx * (LEGS_X + 0.064), 0.47, 0.012],
-    calf: [sx * (LEGS_X + 0.04), 0.3, 0.036],
-    chest: [0, 1.31, 0.115],
-  };
-}
-
 const REGION_NAMES: Record<string, string> = {
   head: 'Head',
   neck: 'Neck',

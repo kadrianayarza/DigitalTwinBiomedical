@@ -41,6 +41,7 @@ import DeleteSymptomReducer from "./delete_symptom_reducer";
 import EscalateAlertReducer from "./escalate_alert_reducer";
 import LogSymptomReducer from "./log_symptom_reducer";
 import RegenerateSbarReducer from "./regenerate_sbar_reducer";
+import RequestTwinReducer from "./request_twin_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
 import ResolveAlertReducer from "./resolve_alert_reducer";
 import SetProfileReducer from "./set_profile_reducer";
@@ -58,6 +59,7 @@ import PresenceRow from "./presence_table";
 import SbarReportRow from "./sbar_report_table";
 import SimStateRow from "./sim_state_table";
 import SymptomEntryRow from "./symptom_entry_table";
+import TwinStatusRow from "./twin_status_table";
 import UserProfileRow from "./user_profile_table";
 import VitalSampleRow from "./vital_sample_table";
 
@@ -158,6 +160,17 @@ const tablesSchema = __schema({
       { name: 'symptom_entry_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, SymptomEntryRow),
+  twinStatus: __table({
+    name: 'twin_status',
+    indexes: [
+      { accessor: 'patientId', name: 'twin_status_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'twin_status_patient_id_key', constraint: 'unique', columns: ['patientId'] },
+    ],
+  }, TwinStatusRow),
   userProfile: __table({
     name: 'user_profile',
     indexes: [
@@ -194,6 +207,7 @@ const reducersSchema = __reducers(
   __reducerSchema("escalate_alert", EscalateAlertReducer),
   __reducerSchema("log_symptom", LogSymptomReducer),
   __reducerSchema("regenerate_sbar", RegenerateSbarReducer),
+  __reducerSchema("request_twin", RequestTwinReducer),
   __reducerSchema("reset_demo", ResetDemoReducer),
   __reducerSchema("resolve_alert", ResolveAlertReducer),
   __reducerSchema("set_profile", SetProfileReducer),

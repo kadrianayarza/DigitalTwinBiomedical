@@ -127,6 +127,25 @@ export const SymptomEntry = __t.object("SymptomEntry", {
 });
 export type SymptomEntry = __Infer<typeof SymptomEntry>;
 
+export const TwinJob = __t.object("TwinJob", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  patientId: __t.u64(),
+  photo: __t.string(),
+  statusUrl: __t.string(),
+  responseUrl: __t.string(),
+  attempt: __t.u32(),
+});
+export type TwinJob = __Infer<typeof TwinJob>;
+
+export const TwinStatus = __t.object("TwinStatus", {
+  patientId: __t.u64(),
+  status: __t.string(),
+  detail: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type TwinStatus = __Infer<typeof TwinStatus>;
+
 export const UserProfile = __t.object("UserProfile", {
   identity: __t.identity(),
   name: __t.string(),
