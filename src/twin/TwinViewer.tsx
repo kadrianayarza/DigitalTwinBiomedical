@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { ContactShadows, Html, OrbitControls } from '@react-three/drei';
+import { ContactShadows, Html, OrbitControls, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import {
@@ -11,8 +11,10 @@ import {
   implantParts,
   regionForHit,
   regionLabel,
+  type HotspotId,
   type Part,
 } from './bodyModel';
+import type { HotspotTone, TwinHotspot } from './hotspots';
 
 export type TwinPin = {
   id: string;
@@ -34,52 +36,90 @@ type Props = {
   onSelectPin?: (id: string) => void;
   onTap?: (region: string, point: [number, number, number]) => void;
   onHover?: (point: [number, number, number] | null) => void;
-  initialDepth?: 0 | 1 | 2;
+  hotspots?: TwinHotspot[];
+  initialMode?: Mode;
   initialFocus?: 'body' | 'knee';
   compact?: boolean;
 };
 
-const LAYERS = ['Skin', 'Muscle', 'Skeleton'] as const;
+type Mode = 'outside' | 'inside';
+type Layer = 'muscle' | 'bone' | 'implant';
+
+const LAYERS: Array<{ id: Layer; label: string; color: string }> = [
+  { id: 'muscle', label: 'Muscles', color: '#b8483f' },
+  { id: 'bone', label: 'Bones', color: '#d9cfb8' },
+  { id: 'implant', label: 'Implant', color: '#5aa9ff' },
+];
 
 export function TwinViewer(props: Props) {
-  const [depth, setDepth] = useState<0 | 1 | 2>(props.initialDepth ?? 0);
+  const [mode, setMode] = useState<Mode>(props.initialMode ?? 'outside');
+  const [layers, setLayers] = useState<Record<Layer, boolean>>({ muscle: true, bone: true, implant: true });
   const [focus, setFocus] = useState<'body' | 'knee'>(props.initialFocus ?? 'body');
   const [focusNonce, setFocusNonce] = useState(0);
+  const [openSpot, setOpenSpot] = useState<HotspotId | null>(null);
 
   return (
-    <div className={`twin ${props.compact ? 'twin--compact' : ''}`}>
+    <div className={`twin twin--${mode} ${props.compact ? 'twin--compact' : ''}`}>
       <Canvas
         shadows
         dpr={[1, 2]}
         camera={{ position: [0, 1.0, 3.1], fov: 35, near: 0.05, far: 50 }}
+        onPointerMissed={() => setOpenSpot(null)}
       >
         <Suspense fallback={null}>
-          <Scene {...props} depth={depth} focus={focus} focusNonce={focusNonce} />
+          <Scene
+            {...props}
+            mode={mode}
+            layers={layers}
+            focus={focus}
+            focusNonce={focusNonce}
+            openSpot={openSpot}
+            onToggleSpot={id => setOpenSpot(cur => (cur === id ? null : id))}
+          />
         </Suspense>
       </Canvas>
-      <div className="twin__toolbar">
-        <div className="seg" role="group" aria-label="Anatomy layer">
-          {LAYERS.map((name, i) => (
+
+      <div className="seg twin__focus" role="group" aria-label="Camera focus">
+        {(['body', 'knee'] as const).map(f => (
+          <button
+            key={f}
+            className={focus === f ? 'seg__btn seg__btn--on' : 'seg__btn'}
+            aria-pressed={focus === f}
+            onClick={() => {
+              setFocus(f);
+              setFocusNonce(n => n + 1);
+            }}
+          >
+            {f === 'body' ? 'Full body' : 'Knee'}
+          </button>
+        ))}
+      </div>
+
+      <div className="twin__dock">
+        {mode === 'inside' && (
+          <div className="legend" role="group" aria-label="Anatomy layers">
+            {LAYERS.map(l => (
+              <button
+                key={l.id}
+                className={`legend__chip ${layers[l.id] ? '' : 'legend__chip--off'}`}
+                aria-pressed={layers[l.id]}
+                onClick={() => setLayers(cur => ({ ...cur, [l.id]: !cur[l.id] }))}
+              >
+                <span className="legend__dot" style={{ background: l.color }} />
+                {l.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="seg modepill" role="group" aria-label="View">
+          {(['outside', 'inside'] as const).map(m => (
             <button
-              key={name}
-              className={depth === i ? 'seg__btn seg__btn--on' : 'seg__btn'}
-              onClick={() => setDepth(i as 0 | 1 | 2)}
+              key={m}
+              className={mode === m ? `seg__btn modepill__btn--on modepill__btn--${m}` : 'seg__btn'}
+              aria-pressed={mode === m}
+              onClick={() => setMode(m)}
             >
-              {name}
-            </button>
-          ))}
-        </div>
-        <div className="seg" role="group" aria-label="Camera focus">
-          {(['body', 'knee'] as const).map(f => (
-            <button
-              key={f}
-              className={focus === f ? 'seg__btn seg__btn--on' : 'seg__btn'}
-              onClick={() => {
-                setFocus(f);
-                setFocusNonce(n => n + 1);
-              }}
-            >
-              {f === 'body' ? 'Full body' : 'Knee'}
+              {m === 'outside' ? 'Outside' : 'Inside'}
             </button>
           ))}
         </div>
@@ -97,10 +137,21 @@ function Scene({
   onSelectPin,
   onTap,
   onHover,
-  depth,
+  hotspots = [],
+  mode,
+  layers,
   focus,
   focusNonce,
-}: Props & { depth: 0 | 1 | 2; focus: 'body' | 'knee'; focusNonce: number }) {
+  openSpot,
+  onToggleSpot,
+}: Props & {
+  mode: Mode;
+  layers: Record<Layer, boolean>;
+  focus: 'body' | 'knee';
+  focusNonce: number;
+  openSpot: HotspotId | null;
+  onToggleSpot: (id: HotspotId) => void;
+}) {
   const s = side === 'left' ? 'l' : 'r';
   const mats = useMemo(
     () => ({
@@ -125,17 +176,22 @@ function Scene({
     []
   );
 
+  const inside = mode === 'inside';
+  const showMuscle = inside && layers.muscle;
+  const showBone = inside && layers.bone;
+  const showImplant = inside && layers.implant;
+
   useEffect(() => {
-    const skinOpacity = depth === 0 ? 1 : 0.14;
     for (const m of [mats.skin, mats.skinSurgical]) {
-      m.opacity = skinOpacity;
-      m.depthWrite = depth === 0;
+      m.opacity = inside ? 0.12 : 1;
+      m.depthWrite = !inside;
       m.needsUpdate = true;
     }
-    mats.muscle.opacity = depth === 2 ? 0.18 : 1;
-    mats.muscle.depthWrite = depth !== 2;
+    const seeThrough = showBone || showImplant;
+    mats.muscle.opacity = seeThrough ? 0.3 : 1;
+    mats.muscle.depthWrite = !seeThrough;
     mats.muscle.needsUpdate = true;
-  }, [depth, mats]);
+  }, [inside, showBone, showImplant, mats]);
 
   const lastHover = useRef(0);
 
@@ -158,7 +214,7 @@ function Scene({
 
   return (
     <>
-      <color attach="background" args={['#f4f7fa']} />
+      <color attach="background" args={[inside ? '#f8f2f2' : '#f4f7fa']} />
       <hemisphereLight args={['#ffffff', '#c9d4de', 0.9]} />
       <directionalLight position={[2, 4, 3]} intensity={1.6} castShadow />
       <directionalLight position={[-3, 2, -2]} intensity={0.5} />
@@ -180,9 +236,15 @@ function Scene({
         ))}
       </group>
 
-      {depth >= 1 && MUSCLE.map(part => <PartMesh key={part.key} part={part} material={mats.muscle} />)}
-      {depth === 2 && BONE.map(part => <PartMesh key={part.key} part={part} material={mats.bone} />)}
-      {depth === 2 && implantParts(s).map(part => <PartMesh key={part.key} part={part} material={mats.implant} />)}
+      {showMuscle && MUSCLE.map(part => <PartMesh key={part.key} part={part} material={mats.muscle} />)}
+      {showBone && BONE.map(part => <PartMesh key={part.key} part={part} material={mats.bone} />)}
+      {showImplant && implantParts(s).map(part => <PartMesh key={part.key} part={part} material={mats.implant} />)}
+
+      {hotspots.map(h => (
+        <Hotspot key={h.id} spot={h} open={openSpot === h.id} onToggle={onToggleSpot} />
+      ))}
+
+      <Sparkles count={36} scale={[3.2, 2.2, 2]} position={[0, 1.05, -0.6]} size={1.6} speed={0.18} opacity={0.45} color="#9aa6b2" />
 
       {pins.map(pin => (
         <Pin key={pin.id} pin={pin} selected={pin.id === selectedPinId} onSelect={onSelectPin} />
@@ -310,6 +372,68 @@ function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onS
       {(hover || selected || pin.pending) && (
         <Html center zIndexRange={[4, 0]} distanceFactor={0.85} position={[0, 0.05, 0]} style={{ pointerEvents: 'none' }}>
           <div className="pin-label">{pin.label}</div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+const TONE_COLOR: Record<HotspotTone, string> = {
+  info: '#6ea8ff',
+  watch: '#f5a524',
+  alarm: '#e5484d',
+};
+
+function Hotspot({ spot, open, onToggle }: { spot: TwinHotspot; open: boolean; onToggle: (id: HotspotId) => void }) {
+  const halo = useRef<THREE.Mesh>(null);
+  const color = TONE_COLOR[spot.tone];
+  const [flip, setFlip] = useState(false);
+  const projected = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame(({ clock, camera }) => {
+    if (open) {
+      const onRight = projected.set(...spot.point).project(camera).x > 0;
+      if (onRight !== flip) setFlip(onRight);
+    }
+    if (!halo.current) return;
+    const t = (Math.sin(clock.elapsedTime * 2.4 + spot.point[1] * 9) + 1) / 2;
+    halo.current.scale.setScalar(1 + t * 0.6);
+    (halo.current.material as THREE.MeshBasicMaterial).opacity = 0.18 + 0.22 * (1 - t);
+  });
+
+  return (
+    <group position={spot.point}>
+      <mesh
+        renderOrder={8}
+        onClick={e => {
+          e.stopPropagation();
+          onToggle(spot.id);
+        }}
+        onPointerOver={e => {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => (document.body.style.cursor = '')}
+      >
+        <sphereGeometry args={[open ? 0.012 : 0.009, 20, 12]} />
+        <meshBasicMaterial color={open ? '#ffffff' : color} />
+      </mesh>
+      <mesh ref={halo} renderOrder={7} raycast={noRaycast}>
+        <sphereGeometry args={[0.02, 20, 12]} />
+        <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} />
+      </mesh>
+      {open && (
+        <Html zIndexRange={[6, 0]} style={{ pointerEvents: 'none' }}>
+          <div className={`callout callout--${spot.tone} ${flip ? 'callout--flip' : ''}`}>
+            <svg className="callout__line" width="64" height="44" viewBox="0 0 64 44" aria-hidden>
+              <polyline points="0,44 26,4 64,4" />
+            </svg>
+            <div className="callout__card" role="status">
+              <div className="callout__kicker">{spot.kicker}</div>
+              <div className="callout__body">{spot.body}</div>
+              {spot.meta && <div className="callout__meta">{spot.meta}</div>}
+            </div>
+          </div>
         </Html>
       )}
     </group>

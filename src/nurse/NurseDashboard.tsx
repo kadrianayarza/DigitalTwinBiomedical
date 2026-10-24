@@ -4,6 +4,7 @@ import { reducers } from '../module_bindings';
 import { activeAlertFor, symptomsFor, useData, vitalsFor } from '../lib/data';
 import { PRIORITY_LABEL, SCENARIO_LABEL, clock, daysSince, timeAgo } from '../lib/format';
 import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
+import { buildHotspots } from '../twin/hotspots';
 import { regionLabel } from '../twin/bodyModel';
 import { PodVitals } from '../components/PodVitals';
 import { SbarPanel } from './SbarPanel';
@@ -165,6 +166,7 @@ function PatientDetail({
               selectedPinId={selectedPin}
               onSelectPin={onSelectPin}
               onHover={onHover}
+              hotspots={buildHotspots({ side: patient.side === 'left' ? 'left' : 'right', vitals, audience: 'nurse' })}
               initialFocus="knee"
               compact
             />

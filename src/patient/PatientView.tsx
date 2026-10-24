@@ -6,6 +6,7 @@ import { activeAlertFor, symptomsFor, useData, vitalsFor } from '../lib/data';
 import { daysSince, timeAgo } from '../lib/format';
 import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { regionLabel } from '../twin/bodyModel';
+import { buildHotspots } from '../twin/hotspots';
 import { PodVitals } from '../components/PodVitals';
 import { SymptomSheet, type SymptomDraft } from './SymptomSheet';
 
@@ -121,6 +122,7 @@ export function PatientView({ patient }: { patient: Patient }) {
             side={patient.side === 'left' ? 'left' : 'right'}
             pins={pins}
             pointers={pointers}
+            hotspots={buildHotspots({ side: patient.side === 'left' ? 'left' : 'right', vitals, audience: 'patient' })}
             onTap={(region, point) => setPending({ region, point })}
             onHover={p =>
               void updatePointer({

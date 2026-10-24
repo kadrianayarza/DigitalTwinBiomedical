@@ -17,6 +17,11 @@ Evidence of how we built TwinCare, for the Anthropic ("Claude in development") a
 
 Screenshots: _add here_
 
+**~10:15 PM PT — Interaction research with REA, then twin UX pass**
+- Used [REA](https://github.com/morluto/rea) (`rea-agents` 6.7.0) through a throwaway Chrome profile to study the interaction design of neal.fun/about, our inspiration: `inspect-web-page` (DOM + accessibility tree), `analyze-web-bundle` (routes, endpoints, renderer hints), and `capture-web-screenshot` before and after toggling views. Only the patterns were studied; no code or assets were taken.
+- What we learned: a two-level view model (Outside/Inside pill, then independent layer chips with color dots), glowing landmark hotspots that open a callout card with a leader line, a stats card where every live number shows a unit, a sparkline, and a "last updated" line, and a Draco-compressed GLB scan with a separate phone-sized model. The anatomy is BodyParts3D (CC BY 4.0).
+- Built in TwinCare: an Outside/Inside mode with Muscles, Bones, and Implant chips; clinical hotspots (incision, knee bend, calf, breathing) that show plain-language guidance to patients and live readings plus the matching rule to nurses, colored by the same thresholds the server rules use; ambient particles; a "Last updated" line on the Twin Pod card.
+
 ## To log next
 - [ ] Grok Bot planning thread (screenshot)
 - [ ] First real Claude SBAR vs. template

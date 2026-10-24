@@ -1,8 +1,9 @@
 import type { VitalSample } from '../module_bindings/types';
+import { timeAgo } from '../lib/format';
 import { Sparkline } from './Sparkline';
 
-const INCISION_BASELINE_C = 34.3;
-const CALF_BASELINE_C = 33.4;
+export const INCISION_BASELINE_C = 34.3;
+export const CALF_BASELINE_C = 33.4;
 
 type Props = { vitals: readonly VitalSample[]; detailed?: boolean };
 
@@ -93,6 +94,7 @@ export function PodVitals({ vitals, detailed }: Props) {
           </div>
         ))}
       </div>
+      <div className="pod__foot">{last ? `Last updated ${timeAgo(last.ts)}` : 'Waiting for the pod…'}</div>
     </div>
   );
 }
