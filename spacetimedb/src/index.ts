@@ -501,7 +501,7 @@ export const setTwinUrl = spacetimedb.reducer(
     if (status === 'queued' || status === 'generating') throw new SenderError('A twin is already being generated');
     ctx.db.patient.id.update({ ...p, twinUrl });
     if (!twinUrl) ctx.db.twinStatus.patientId.delete(patientId);
-    audit(ctx, patientId, actorName(ctx, ctx.sender), 'twin_updated', twinUrl ? 'Personal twin' : 'Reference body');
+    audit(ctx, patientId, actorName(ctx, ctx.sender), 'twin_updated', twinUrl ? 'Personal twin' : 'Personal scan removed');
   }
 );
 

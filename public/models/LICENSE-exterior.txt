@@ -1,6 +1,0 @@
-exterior.glb: skin, scalp hair, eyebrows and lips from BodyParts3D 4.0,
-(c) The Database Center for Life Science (DBCLS), licensed under CC BY 4.0
-(https://creativecommons.org/licenses/by/4.0/; https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html).
-Geometry as packaged by Human Atlas (https://github.com/ashemag/human-atlas), simplified there
-with meshoptimizer. Adapted here: translated to align with anatomy.glb, materials added,
-meshopt-compressed.

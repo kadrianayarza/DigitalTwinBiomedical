@@ -6,14 +6,10 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { BONE, MUSCLE, SKIN, implantParts, regionForHit, regionLabel, type HotspotId, type Part } from './bodyModel';
 import {
   ANATOMY_CREDIT,
-  EXTERIOR_CREDIT,
-  EXTERIOR_URL,
   Implant,
   ModelBoundary,
   PhotoSkin,
-  ReferenceExterior,
   SEATED_SCALE,
-  Shorts,
   kneeTarget,
   proxiedTwinUrl,
   regionForPoint,
@@ -46,7 +42,7 @@ type Props = {
   onTap?: (region: string, point: [number, number, number]) => void;
   onHover?: (point: [number, number, number] | null) => void;
   hotspots?: TwinHotspot[];
-  /** Personal Meshy twin (GLB). Empty uses the reference exterior. */
+  /** Personal Meshy twin (GLB). Without one, the viewer shows the inside view only. */
   twinUrl?: string;
   /** The personal scan is seated (wheelchair user). */
   seated?: boolean;
@@ -60,7 +56,7 @@ type Props = {
 type Mode = 'outside' | 'inside';
 type Layer = 'muscle' | 'bone' | 'vessel' | 'implant';
 /** What the outer surface currently is. */
-type SkinKind = 'scan' | 'reference' | 'anatomy';
+type SkinKind = 'scan' | 'anatomy';
 
 const LAYERS: Array<{ id: Layer; label: string; color: string }> = [
   { id: 'muscle', label: 'Muscles', color: '#c4453c' },
@@ -83,9 +79,11 @@ export function TwinViewer(props: Props) {
   const [focusNonce, setFocusNonce] = useState(0);
   const [openSpot, setOpenSpot] = useState<HotspotId | null>(null);
   const [skinKind, setSkinKind] = useState<SkinKind>('anatomy');
-  // Show the inside view as the placeholder while a personal scan downloads.
-  const scanLoading = useGltfStatus(props.twinUrl ? proxiedTwinUrl(props.twinUrl) : undefined) === 'loading';
-  const view: Mode = scanLoading ? 'inside' : mode;
+  // The outside view is the personal scan only; until one is ready, show the inside view.
+  const scanStatus = useGltfStatus(props.twinUrl ? proxiedTwinUrl(props.twinUrl) : undefined);
+  const scanLoading = scanStatus === 'loading';
+  const hasScan = scanStatus === 'ready';
+  const view: Mode = hasScan ? mode : 'inside';
   // Landmark callouts are placed on a standing body.
   const seatedScan = !!props.seated && view === 'outside' && skinKind === 'scan';
 
@@ -111,11 +109,9 @@ export function TwinViewer(props: Props) {
 
   const credit = scanLoading
     ? `Loading your scan · ${ANATOMY_CREDIT}`
-    : view === 'inside' || skinKind === 'anatomy'
-      ? ANATOMY_CREDIT
-      : skinKind === 'scan'
-        ? 'Personal scan · photo to 3D · shape is approximate'
-        : EXTERIOR_CREDIT;
+    : view === 'outside' && skinKind === 'scan'
+      ? 'Personal scan · photo to 3D · shape is approximate'
+      : ANATOMY_CREDIT;
 
   return (
     <div ref={rootRef} className={`twin twin--${view} ${props.compact ? 'twin--compact' : ''}`}>
@@ -146,7 +142,7 @@ export function TwinViewer(props: Props) {
       <div className="twin__hud" aria-hidden>
         <span className="twin__hudlabel">
           Twin · {view === 'outside' ? 'Exterior' : 'Interior'}
-          <em>{view === 'outside' && skinKind === 'scan' ? 'Personal' : view === 'outside' && skinKind === 'reference' ? 'Reference' : 'Anatomy'}</em>
+          <em>{view === 'outside' && skinKind === 'scan' ? 'Personal' : 'Anatomy'}</em>
         </span>
       </div>
 
@@ -188,8 +184,10 @@ export function TwinViewer(props: Props) {
             {(['outside', 'inside'] as const).map(m => (
               <button
                 key={m}
-                className={mode === m ? 'seg__btn seg__btn--on' : 'seg__btn'}
-                aria-pressed={mode === m}
+                className={view === m ? 'seg__btn seg__btn--on' : 'seg__btn'}
+                aria-pressed={view === m}
+                disabled={m === 'outside' && !hasScan}
+                title={m === 'outside' && !hasScan ? (scanLoading ? 'Loading the personal scan…' : 'No personal scan yet') : undefined}
                 onClick={() => setMode(m)}
               >
                 {m === 'outside' ? 'Outside' : 'Inside'}
@@ -419,9 +417,7 @@ function RealBody({
     return b.max.y - b.min.y;
   }, [geo.skin]);
   const skinRef = useCallback((m: THREE.Mesh | null) => m && onSurface(m, 'anatomy'), [onSurface]);
-  const onReference = useCallback((o: THREE.Object3D) => onSurface(o, 'reference'), [onSurface]);
   const onScan = useCallback((o: THREE.Object3D) => onSurface(o, 'scan'), [onSurface]);
-  const failExterior = useCallback(() => onFail(EXTERIOR_URL), [onFail]);
 
   const anatomySkin = geo.skin && (
     <mesh
@@ -432,37 +428,22 @@ function RealBody({
       renderOrder={inside ? 4 : 3}
     />
   );
-  const anatomyOutside = (
-    <>
-      {anatomySkin}
-      <Shorts material={mats.shorts} />
-    </>
-  );
-  // Tier order for the Outside view: personal Meshy scan -> Human Atlas reference body -> anatomy skin.
-  const reference = failedUrls[EXTERIOR_URL] ? (
-    anatomyOutside
-  ) : (
-    <ModelBoundary resetKey={EXTERIOR_URL} fallback={anatomyOutside}>
-      <Suspense fallback={anatomyOutside}>
-        <ReferenceExterior side={side} skin={mats.realSkin} onReady={onReference} onError={failExterior} />
-        <Shorts material={mats.shorts} />
-      </Suspense>
-    </ModelBoundary>
-  );
-  const scan =
+  // The outside view is only ever the personal scan; the viewer stays inside until it is ready.
+  const exterior =
     twinUrl && !failedUrls[twinUrl] ? (
-      <ModelBoundary resetKey={twinUrl} fallback={reference}>
-        <Suspense fallback={reference}>
-        <PhotoSkin
-          url={proxiedTwinUrl(twinUrl)}
-          height={seated ? height * SEATED_SCALE : height}
-          onReady={onScan}
-          onError={() => twinUrl && onFail(twinUrl)}
-        />
+      <ModelBoundary resetKey={twinUrl} fallback={anatomySkin}>
+        <Suspense fallback={anatomySkin}>
+          <PhotoSkin
+            url={proxiedTwinUrl(twinUrl)}
+            height={seated ? height * SEATED_SCALE : height}
+            onReady={onScan}
+            onError={() => twinUrl && onFail(twinUrl)}
+          />
         </Suspense>
       </ModelBoundary>
-    ) : null;
-  const exterior = twinUrl ? (failedUrls[twinUrl] ? reference : scan) : reference;
+    ) : (
+      anatomySkin
+    );
 
   const inner = (g: THREE.BufferGeometry | undefined, m: THREE.Material, on: boolean, order = 0) =>
     on && g ? <mesh geometry={g} material={m} raycast={noRaycast} renderOrder={order} /> : null;

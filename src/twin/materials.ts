@@ -46,7 +46,6 @@ export function createTwinMaterials() {
     }),
     realSkin: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62 }),
     glassSkin: createGlassSkin(),
-    shorts: new THREE.MeshStandardMaterial({ color: '#2a3446', roughness: 0.85 }),
     muscle: new THREE.MeshStandardMaterial({
       color: '#c4453c',
       roughness: 0.5,

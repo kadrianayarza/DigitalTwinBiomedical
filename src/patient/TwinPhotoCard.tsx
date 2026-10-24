@@ -50,11 +50,11 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
   };
 
   return (
-    <Panel title="Your twin" code={patient.twinUrl ? 'Personal scan' : 'Reference body'} className="twinphoto">
+    <Panel title="Your twin" code={patient.twinUrl ? 'Personal scan' : 'No scan yet'} className="twinphoto">
       <p className="muted small">
         {patient.twinUrl
           ? 'Your twin was made from your photo. The shape is approximate.'
-          : 'Add a full-body photo (standing, arms slightly out) and we will shape the twin to look like you.'}
+          : 'Add a full-body photo (standing, arms slightly out) and we will shape the twin to look like you. Until then, your twin shows the inside view.'}
       </p>
 
       {busy && (
@@ -78,7 +78,7 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
             disabled={busy}
             onClick={() => void setTwinUrl({ patientId: patient.id, twinUrl: '' }).catch(e => setError(String(e)))}
           >
-            Use reference body
+            Remove my scan
           </button>
         )}
       </div>

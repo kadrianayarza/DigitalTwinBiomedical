@@ -8,9 +8,6 @@ import { SKIN, regionForHit, type HotspotId, type Part } from './bodyModel';
 
 export const ANATOMY_URL = '/models/anatomy.glb';
 export const ANATOMY_CREDIT = 'BodyParts3D © DBCLS · CC BY-SA 2.1 JP';
-/** Reference outside body built by scripts/build-exterior.mjs. */
-export const EXTERIOR_URL = '/models/exterior.glb';
-export const EXTERIOR_CREDIT = 'Reference body · BodyParts3D © DBCLS · CC BY 4.0 · via Human Atlas';
 
 /** Provider asset hosts send no CORS headers; load their GLBs through the same-origin proxy. */
 export function proxiedTwinUrl(url: string): string {
@@ -81,29 +78,6 @@ function paintSkin(g: THREE.BufferGeometry, side: 'l' | 'r') {
     colors.set([c.r, c.g, c.b], i * 3);
   }
   g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-}
-
-/** Overlapping closed shells keep the hips covered from every viewing angle. */
-export function Shorts({ material }: { material: THREE.Material }) {
-  return (
-    <group>
-      <mesh position={[0, 0.875, 0.005]} scale={[0.195, 1, 0.165]} material={material} userData={{ tappable: true }} castShadow>
-        <cylinderGeometry args={[0.96, 1, 0.25, 48]} />
-      </mesh>
-      {[-1, 1].map(sx => (
-        <mesh
-          key={sx}
-          position={[sx * 0.085, 0.745, 0.008]}
-          scale={[0.103, 1, 0.125]}
-          material={material}
-          userData={{ tappable: true }}
-          castShadow
-        >
-          <cylinderGeometry args={[1.04, 0.98, 0.15, 40]} />
-        </mesh>
-      ))}
-    </group>
-  );
 }
 
 type LoadResult = { gltf: THREE.Group } | { failed: true };
@@ -192,57 +166,6 @@ export function PhotoSkin({
     return wrap;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, failed, height]);
-  useLayoutEffect(() => {
-    if (object) onReady(object);
-  }, [object, onReady]);
-  if (failed || !object) return null;
-  return <primitive object={object} />;
-}
-
-/**
- * Reference outside body (BodyParts3D skin, hair, brows and lips via Human Atlas).
- * Built pre-aligned to anatomy.glb by scripts/build-exterior.mjs, so it is placed
- * as-is; the skin gets the same clothing paint and material as the anatomy skin.
- */
-export function ReferenceExterior({
-  side,
-  skin,
-  onReady,
-  onError,
-}: {
-  side: 'l' | 'r';
-  skin: THREE.Material;
-  onReady: (o: THREE.Object3D) => void;
-  onError: () => void;
-}) {
-  const load = useGltfSafe(EXTERIOR_URL);
-  const failed = 'failed' in load;
-  useEffect(() => {
-    if (failed) onError();
-  }, [failed, onError]);
-  const object = useMemo(() => {
-    if (failed) return null;
-    load.gltf.updateMatrixWorld(true);
-    const group = new THREE.Group();
-    load.gltf.traverse(o => {
-      const src = o as THREE.Mesh;
-      if (!src.isMesh) return;
-      const geometry = toFloatGeometry(src.geometry, src.matrixWorld);
-      const isSkin = src.name === 'skin';
-      if (isSkin) paintSkin(geometry, side);
-      const mesh = new THREE.Mesh(geometry, isSkin ? skin : src.material);
-      mesh.name = src.name;
-      mesh.castShadow = true;
-      mesh.userData.tappable = true;
-      mesh.renderOrder = 3;
-      group.add(mesh);
-    });
-    return group;
-  }, [load, failed, side, skin]);
-  useEffect(
-    () => () => object?.traverse(o => (o as THREE.Mesh).isMesh && (o as THREE.Mesh).geometry.dispose()),
-    [object]
-  );
   useLayoutEffect(() => {
     if (object) onReady(object);
   }, [object, onReady]);
