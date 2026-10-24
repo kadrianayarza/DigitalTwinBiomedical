@@ -44,7 +44,7 @@ function Landing() {
             </button>
             <button className="choice" onClick={() => goToRole('nurse')}>
               <span className="choice__code">Access 02</span>
-              <span className="choice__title">I'm a nurse</span>
+              <span className="choice__title">I'm a medical professional</span>
               <span className="choice__desc">Open the follow-up console</span>
             </button>
           </div>
