@@ -32,15 +32,6 @@ export function Hex({ tone, label, children }: { tone: HexTone; label?: string; 
   );
 }
 
-export function LiveIndicator({ connected }: { connected: boolean }) {
-  return (
-    <span className={`live ${connected ? 'live--on' : ''}`}>
-      <Hex tone={connected ? 'ok' : 'off'} />
-      {connected ? 'Live' : 'Offline'}
-    </span>
-  );
-}
-
 export function Panel({
   title,
   code,

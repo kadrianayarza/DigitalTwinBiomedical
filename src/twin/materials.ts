@@ -4,9 +4,9 @@ import * as THREE from 'three';
 function createGlassSkin() {
   return new THREE.ShaderMaterial({
     uniforms: {
-      rim: { value: new THREE.Color('#ff8a2a') },
-      core: { value: new THREE.Color('#3ad7ff') },
-      opacity: { value: 0.85 },
+      rim: { value: new THREE.Color('#e06208') },
+      core: { value: new THREE.Color('#0891b2') },
+      opacity: { value: 0.9 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vNormal;
@@ -51,11 +51,11 @@ export function createTwinMaterials() {
       color: '#c4453c',
       roughness: 0.5,
       emissive: new THREE.Color('#5a0f0a'),
-      emissiveIntensity: 0.6,
+      emissiveIntensity: 0.25,
     }),
-    bone: new THREE.MeshStandardMaterial({ color: '#efe6d2', roughness: 0.75, emissive: new THREE.Color('#2a2418') }),
-    artery: new THREE.MeshStandardMaterial({ color: '#ff3b4f', roughness: 0.4, emissive: new THREE.Color('#5c0a14') }),
-    vein: new THREE.MeshStandardMaterial({ color: '#4a6dff', roughness: 0.4, emissive: new THREE.Color('#0c1a5c') }),
+    bone: new THREE.MeshStandardMaterial({ color: '#efe6d2', roughness: 0.75 }),
+    artery: new THREE.MeshStandardMaterial({ color: '#dc2b3f', roughness: 0.4, emissive: new THREE.Color('#40060c') }),
+    vein: new THREE.MeshStandardMaterial({ color: '#3a56d4', roughness: 0.4, emissive: new THREE.Color('#0c1440') }),
     insert: new THREE.MeshStandardMaterial({
       color: '#f4f7fb', roughness: 0.5, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false,
     }),
@@ -63,8 +63,8 @@ export function createTwinMaterials() {
       color: '#c9d3dd',
       metalness: 0.9,
       roughness: 0.25,
-      emissive: new THREE.Color('#3ad7ff'),
-      emissiveIntensity: 0.55,
+      emissive: new THREE.Color('#0891b2'),
+      emissiveIntensity: 0.4,
       transparent: true,
       opacity: 0.95,
       depthTest: false,

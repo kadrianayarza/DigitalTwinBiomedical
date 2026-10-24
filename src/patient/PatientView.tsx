@@ -8,7 +8,7 @@ import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { regionLabel } from '../twin/bodyModel';
 import { buildHotspots } from '../twin/hotspots';
 import { PodVitals } from '../components/PodVitals';
-import { Brand, LiveIndicator, Panel, SeverityHex } from '../components/ui';
+import { Brand, Panel, SeverityHex } from '../components/ui';
 import { SymptomSheet, type SymptomDraft } from './SymptomSheet';
 import { TwinPhotoCard } from './TwinPhotoCard';
 
@@ -50,7 +50,7 @@ export function PatientView({ patient }: { patient: Patient }) {
 
   const pointers: TwinPointer[] = data.presence
     .filter(p => p.patientId === patient.id && p.pointing && p.role === 'nurse')
-    .map(p => ({ id: p.identity.toHexString(), name: p.name, x: p.x, y: p.y, z: p.z, color: '#9b6bff' }));
+    .map(p => ({ id: p.identity.toHexString(), name: p.name, x: p.x, y: p.y, z: p.z,     color: '#9b6bff' }));
 
   const submit = (d: SymptomDraft) => {
     if (!pending) return;
@@ -99,7 +99,6 @@ export function PatientView({ patient }: { patient: Patient }) {
             Day {String(day).padStart(2, '0')} · {patient.side === 'left' ? 'Left' : 'Right'} knee replacement
           </span>
         </div>
-        <LiveIndicator connected={data.connected} />
       </header>
 
       {status && (

@@ -59,7 +59,7 @@ const LAYERS: Array<{ id: Layer; label: string; color: string }> = [
   { id: 'implant', label: 'Implant', color: '#3ad7ff' },
 ];
 
-const ORANGE = '#ff7a1a';
+const ORANGE = '#f26b0f';
 
 export function TwinViewer(props: Props) {
   const [mode, setMode] = useState<Mode>(props.initialMode ?? 'outside');
@@ -236,11 +236,11 @@ function Scene({
 
   return (
     <>
-      <color attach="background" args={[inside ? '#0a0c10' : '#06070a']} />
-      <hemisphereLight args={['#dfe8ff', '#160c06', inside ? 0.45 : 0.9]} />
-      <directionalLight position={[1.5, 3, 3]} intensity={inside ? 1.1 : 2.1} color="#fff4ea" />
-      <directionalLight position={[-3, 2, -2.5]} intensity={2.6} color={ORANGE} />
-      <directionalLight position={[3, 1.5, -2.5]} intensity={1.6} color="#3ad7ff" />
+      <color attach="background" args={[inside ? '#f7f1ec' : '#eef0f4']} />
+      <hemisphereLight args={['#ffffff', '#c9c3ba', inside ? 0.5 : 0.95]} />
+      <directionalLight position={[1.5, 3, 3]} intensity={inside ? 1.1 : 2.0} color="#fff8f0" />
+      <directionalLight position={[-3, 2, -2.5]} intensity={inside ? 1.4 : 0.7} color="#ffd9b8" />
+      <directionalLight position={[3, 1.5, -2.5]} intensity={inside ? 1.0 : 0.55} color="#d8ecf5" />
 
       <CameraRig focus={focus} nonce={focusNonce} side={s} />
 
@@ -296,10 +296,10 @@ function Platform() {
         args={[8, 8]}
         cellSize={0.1}
         cellThickness={0.5}
-        cellColor="#3a2412"
+        cellColor="#cfc9bd"
         sectionSize={0.5}
         sectionThickness={0.9}
-        sectionColor="#8a3f0c"
+        sectionColor="#e3b78d"
         fadeDistance={5.5}
         fadeStrength={2.2}
         infiniteGrid
@@ -514,9 +514,9 @@ function PartMesh({ part, material, tappable, renderOrder = 0 }: {
 }
 
 function severityColor(sev: number) {
-  if (sev >= 7) return '#ff2a3d';
-  if (sev >= 4) return '#ffb020';
-  return '#5cff9d';
+  if (sev >= 7) return '#dc1f34';
+  if (sev >= 4) return '#d97706';
+  return '#0f8a4d';
 }
 
 /** Flat hexagon outline that always faces the camera. */
@@ -581,9 +581,9 @@ function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onS
 }
 
 const TONE_COLOR: Record<HotspotTone, string> = {
-  info: '#3ad7ff',
-  watch: '#ffb020',
-  alarm: '#ff2a3d',
+  info: '#0789b4',
+  watch: '#d97706',
+  alarm: '#dc1f34',
 };
 
 function Hotspot({

@@ -8,7 +8,7 @@ import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { buildHotspots } from '../twin/hotspots';
 import { regionLabel } from '../twin/bodyModel';
 import { PodVitals } from '../components/PodVitals';
-import { Brand, Hex, LiveIndicator, Panel, SeverityHex, type HexTone } from '../components/ui';
+import { Brand, Hex, Panel, SeverityHex, type HexTone } from '../components/ui';
 import { SbarPanel } from './SbarPanel';
 import { ImpactBar } from './ImpactBar';
 
@@ -46,7 +46,6 @@ export function NurseDashboard() {
         <ImpactBar />
         <div className="topbar__who">
           <strong>{data.me?.name}</strong>
-          <LiveIndicator connected={data.connected} />
         </div>
       </header>
 
@@ -154,7 +153,7 @@ function PatientDetail({
   }));
   const pointers: TwinPointer[] = data.presence
     .filter(p => p.patientId === patientId && p.pointing && p.role === 'patient')
-    .map(p => ({ id: p.identity.toHexString(), name: p.name, x: p.x, y: p.y, z: p.z, color: '#5cff9d' }));
+    .map(p => ({ id: p.identity.toHexString(), name: p.name, x: p.x, y: p.y, z: p.z, color: '#0f8a4d' }));
 
   return (
     <>

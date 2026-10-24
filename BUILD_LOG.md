@@ -40,6 +40,11 @@ Screenshots: _add here_
 - Outside view source tiers: personal Meshy scan → Meshy reference exterior → anatomy skin, with a safe GLTF loader that falls back instead of crashing the render loop (found and fixed two uncaught-error bugs that silently killed rendering).
 - Verified in the browser at 1512px and ~1024px: landing, patient Outside/Inside/knee views, tap-to-region check-in sheet, and the nurse console. All 41 tests, both type checks, and the production build pass.
 
+**~12:00 PM PT — Light theme pass**
+- Switched to a light UI on feedback: white background with a faint warm grid, semi-transparent white glass cards, dark ink text, and the same orange accent system (tones darkened for contrast on white).
+- Set Google Sans as the single UI face (dropped the artificial condensation and mono styling on labels; Google Sans Code stays for numeric readouts and the audit trail).
+- Removed the live/offline dashboard indicator.
+
 ## To log next
 - [ ] Grok Bot planning thread (screenshot)
 - [ ] First real Claude SBAR vs. template
