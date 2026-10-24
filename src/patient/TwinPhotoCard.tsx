@@ -25,14 +25,13 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
   const setTwinUrl = useReducer(reducers.setTwinUrl);
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [consent, setConsent] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const status = data.twinStatuses.find(s => s.patientId === patient.id);
   const busy = uploading || status?.status === 'queued' || status?.status === 'generating';
 
   const onFile = async (file: File | undefined) => {
-    if (!file || !consent || busy) return;
+    if (!file || busy) return;
     setError(null);
     setUploading(true);
     try {
@@ -69,12 +68,8 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
       {status?.status === 'error' && <div className="twinphoto__error">Couldn’t build your twin: {status.detail}</div>}
       {error && <div className="twinphoto__error">{error}</div>}
 
-      <label className="check">
-        <input type="checkbox" checked={consent} disabled={busy} onChange={e => setConsent(e.target.checked)} />
-        <span>I agree to send this photo to Meshy to generate my 3D twin.</span>
-      </label>
       <div className="twinphoto__actions">
-        <button className="btn" disabled={busy || !consent} onClick={() => input.current?.click()}>
+        <button className="btn" disabled={busy} onClick={() => input.current?.click()}>
           {patient.twinUrl ? 'Use a new photo' : 'Make my twin from a photo'}
         </button>
         {patient.twinUrl && (
@@ -92,7 +87,7 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
         type="file"
         accept="image/jpeg,image/png,image/webp"
         aria-label="Full-body photo for Meshy"
-        disabled={busy || !consent}
+        disabled={busy}
         hidden
         onChange={e => void onFile(e.target.files?.[0])}
       />
