@@ -394,7 +394,7 @@ function seedPatients(ctx: Ctx) {
   const now = ctx.timestamp.microsSinceUnixEpoch;
   const seed: Array<[string, number, string, string, bigint, string]> = [
     ['Kadrian Ayarza', 22, 'Total knee replacement', 'right', 5n, 'normal'],
-    ['Isak Smith', 22, 'Total knee replacement', 'left', 12n, 'normal'],
+    ['Isak Smith', 22, 'Concussion', 'left', 12n, 'normal'],
     ['David Okafor', 59, 'Heart failure monitoring', 'right', 3n, 'fluid'],
     ['Tom Becker', 28, 'Diabetic foot wound care', 'left', 2n, 'normal'],
     ['Mei Lin Wu', 25, 'COPD monitoring', 'right', 8n, 'normal'],
