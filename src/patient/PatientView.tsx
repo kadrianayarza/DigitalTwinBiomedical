@@ -155,6 +155,7 @@ export function PatientView({ patient }: { patient: Patient }) {
             pointers={pointers}
             twinUrl={patient.twinUrl}
             seated={usesWheelchair(patient)}
+            procedure={patient.procedure}
             hotspots={buildHotspots({ vitals, audience: 'patient' })}
             onTap={(region, point) => setPending({ region, point })}
             onHover={p =>

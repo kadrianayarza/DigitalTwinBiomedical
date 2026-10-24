@@ -10,7 +10,6 @@ import {
   ModelBoundary,
   PhotoSkin,
   SEATED_SCALE,
-  kneeTarget,
   proxiedTwinUrl,
   regionForPoint,
   regionForSeatedPoint,
@@ -19,6 +18,7 @@ import {
   useGltfStatus,
 } from './anatomy';
 import type { HotspotTone, TwinHotspot } from './hotspots';
+import { focusForCondition, type FocusRegion } from './focus';
 import { createGroundShadowTexture, createTwinMaterials, setTwinMaterialMode, type TwinMaterials } from './materials';
 
 export type TwinPin = {
@@ -47,13 +47,15 @@ type Props = {
   /** The personal scan is seated (wheelchair user). */
   seated?: boolean;
   initialMode?: Mode;
-  initialFocus?: 'body' | 'knee';
+  /** The patient's condition; picks the close-up offered beside "Full body". */
+  procedure?: string;
   compact?: boolean;
   /** Pixels covered by overlays above the twin; the full-body shot fits below them and above the controls. */
   fitTop?: number;
 };
 
 type Mode = 'outside' | 'inside';
+type Focus = 'body' | 'region';
 type Layer = 'muscle' | 'bone' | 'vessel' | 'implant';
 /** What the outer surface currently is. */
 type SkinKind = 'scan' | 'anatomy';
@@ -75,7 +77,7 @@ export function TwinViewer(props: Props) {
     vessel: false,
     implant: true,
   });
-  const [focus, setFocus] = useState<'body' | 'knee'>(props.initialFocus ?? 'body');
+  const [focus, setFocus] = useState<Focus>('body');
   const [focusNonce, setFocusNonce] = useState(0);
   const [openSpot, setOpenSpot] = useState<HotspotId | null>(null);
   const [skinKind, setSkinKind] = useState<SkinKind>('anatomy');
@@ -86,6 +88,10 @@ export function TwinViewer(props: Props) {
   const view: Mode = hasScan ? mode : 'inside';
   // Landmark callouts are placed on a standing body.
   const seatedScan = !!props.seated && view === 'outside' && skinKind === 'scan';
+  const region = useMemo(
+    () => (props.procedure ? focusForCondition(props.procedure, props.side === 'left' ? 'l' : 'r', seatedScan) : null),
+    [props.procedure, props.side, seatedScan]
+  );
 
   const rootRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -130,6 +136,7 @@ export function TwinViewer(props: Props) {
             mode={view}
               layers={layers}
               focus={focus}
+              region={region}
               focusNonce={focusNonce}
               openSpot={openSpot}
               onToggleSpot={id => setOpenSpot(cur => (cur === id ? null : id))}
@@ -163,9 +170,9 @@ export function TwinViewer(props: Props) {
           </div>
         )}
         <div ref={controlsRef} className="twin__controls">
-          {!props.compact && (
+          {!props.compact && region && (
             <div className="seg" role="group" aria-label="Camera focus">
-              {(['body', 'knee'] as const).map(f => (
+              {(['body', 'region'] as const).map(f => (
                 <button
                   key={f}
                   className={focus === f ? 'seg__btn seg__btn--on' : 'seg__btn'}
@@ -175,7 +182,7 @@ export function TwinViewer(props: Props) {
                     setFocusNonce(n => n + 1);
                   }}
                 >
-                  {f === 'body' ? 'Full body' : 'Knee'}
+                  {f === 'body' ? 'Full body' : region.label}
                 </button>
               ))}
             </div>
@@ -217,6 +224,7 @@ function Scene({
   mode,
   layers,
   focus,
+  region,
   focusNonce,
   openSpot,
   onToggleSpot,
@@ -226,7 +234,8 @@ function Scene({
   fit?: { top: number; bottom: number };
   mode: Mode;
   layers: Record<Layer, boolean>;
-  focus: 'body' | 'knee';
+  focus: Focus;
+  region: FocusRegion | null;
   focusNonce: number;
   openSpot: HotspotId | null;
   onToggleSpot: (id: HotspotId) => void;
@@ -286,7 +295,7 @@ function Scene({
       <directionalLight position={[-3, 2, -2.5]} intensity={inside ? 1.4 : 0.7} color="#ffd9b8" />
       <directionalLight position={[3, 1.5, -2.5]} intensity={inside ? 1.0 : 0.55} color="#d8ecf5" />
 
-      <CameraRig focus={focus} nonce={focusNonce} side={s} fit={fit} seated={seatedScan} />
+      <CameraRig focus={focus} region={region} nonce={focusNonce} fit={fit} seated={seatedScan} />
 
       <Bvh firstHitOnly>
         <group onClick={handleClick} onPointerMove={handleMove} onPointerOut={() => onHover?.(null)}>
@@ -465,14 +474,14 @@ const BODY_SPAN = 1.84;
 
 function CameraRig({
   focus,
+  region,
   nonce,
-  side,
   fit,
   seated,
 }: {
-  focus: 'body' | 'knee';
+  focus: Focus;
+  region: FocusRegion | null;
   nonce: number;
-  side: 'l' | 'r';
   fit?: { top: number; bottom: number };
   seated?: boolean;
 }) {
@@ -499,16 +508,13 @@ function CameraRig({
   }, [fit?.top, fit?.bottom, seated, size.height, widthDistance, tanHalf]);
 
   useEffect(() => {
-    if (focus === 'knee') {
-      const [x, y, z] = kneeTarget(side);
-      goal.current = {
-        target: new THREE.Vector3(x, y, z),
-        pos: new THREE.Vector3(x + 0.45, y + 0.2, z + 1.15),
-      };
+    if (focus === 'region' && region) {
+      const target = new THREE.Vector3(...region.target);
+      goal.current = { target, pos: target.clone().add(new THREE.Vector3(...region.offset)) };
     } else {
       goal.current = { target: new THREE.Vector3(0, bodyY, 0), pos: new THREE.Vector3(0, bodyY, bodyDistance) };
     }
-  }, [focus, nonce, side, bodyY, bodyDistance]);
+  }, [focus, region, nonce, bodyY, bodyDistance]);
 
   useFrame((_, dt) => {
     const c = controls.current;
