@@ -38,6 +38,7 @@ export function SbarPanel({ alert, report }: Props) {
   useEffect(() => setDirty(false), [alert.id]);
 
   const codes = alert.reasonCodes.split(',').filter(Boolean);
+  const ruleCount = codes.filter(c => !c.startsWith('ML_')).length;
   const pending = !report || report.status === 'pending';
   const approved = report?.status === 'approved';
   const isAi = report && report.model && report.model !== 'template';
@@ -69,7 +70,9 @@ export function SbarPanel({ alert, report }: Props) {
         <div className="triad__unit triad__unit--alarm">
           <span className="triad__name">Rules</span>
           <span className="triad__val">
-            {codes.length} {codes.length === 1 ? 'rule' : 'rules'} fired
+            {ruleCount > 0 && `${ruleCount} ${ruleCount === 1 ? 'rule' : 'rules'} fired`}
+            {ruleCount > 0 && ruleCount < codes.length && ' + model'}
+            {ruleCount === 0 && 'Risk model'}
           </span>
         </div>
         <div className={`triad__unit triad__unit--${ai.state}`}>

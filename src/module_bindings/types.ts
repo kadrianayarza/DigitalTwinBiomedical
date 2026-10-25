@@ -105,6 +105,17 @@ export const Presence = __t.object("Presence", {
 });
 export type Presence = __Infer<typeof Presence>;
 
+export const RiskScore = __t.object("RiskScore", {
+  patientId: __t.u64(),
+  prob: __t.f64(),
+  level: __t.string(),
+  drivers: __t.string(),
+  history: __t.string(),
+  hours: __t.u32(),
+  updatedAt: __t.timestamp(),
+});
+export type RiskScore = __Infer<typeof RiskScore>;
+
 export const SbarJob = __t.object("SbarJob", {
   scheduledId: __t.u64(),
   scheduledAt: __t.scheduleAt(),

@@ -28,6 +28,14 @@ export const REASON_LABEL: Record<string, string> = {
   WEARABLE_LOW_SPO2: 'Watch blood oxygen below 90%',
   IRREGULAR_RHYTHM: 'Irregular rhythm notification from the watch',
   GLUCOSE_OUT_OF_RANGE: 'Blood glucose below 70 or above 300 mg/dL',
+  ML_RISK_ELEVATED: 'Risk model (advisory): elevated chance of sepsis onset within 6 hours',
+  ML_RISK_HIGH: 'Risk model (advisory): high chance of sepsis onset within 6 hours',
+};
+
+/** Advisory model alerts never reach emergency and only add to the rule floor. */
+export const ML_RISK_PRIORITY: Record<string, RuleHit> = {
+  elevated: { code: 'ML_RISK_ELEVATED', priority: 'review_24h' },
+  high: { code: 'ML_RISK_HIGH', priority: 'same_day' },
 };
 
 export const SCENARIOS = ['normal', 'dvt', 'infection', 'fluid'] as const;
@@ -174,6 +182,7 @@ Rules:
 - Use only facts present in the input. Do not invent history, medications, or measurements.
 - Do not diagnose. Describe findings as "consistent with" or "concerning for" and defer to the nurse.
 - Mention when data is thin rather than drawing conclusions.
+- A deterioration model score may be included. Treat it as one advisory signal with the limitations stated next to it, never as a diagnosis, and say so if you rely on it.
 - Submit your answer with the submit_triage tool.`;
 
 export const BITDEER_CHAT_URL = 'https://api-inference.bitdeer.ai/v1/chat/completions';

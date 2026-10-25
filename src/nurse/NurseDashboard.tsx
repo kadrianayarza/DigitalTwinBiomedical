@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Alert } from '../module_bindings/types';
-import { activeAlertFor, symptomsFor, useData, vitalsFor } from '../lib/data';
+import { activeAlertFor, riskFor, symptomsFor, useData, vitalsFor } from '../lib/data';
 import { PRIORITY_LABEL, SCENARIO_LABEL, careLabel, clock, daysSince, isSurgical, timeAgo, usesWheelchair } from '../lib/format';
 import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { buildHotspots } from '../twin/hotspots';
@@ -13,6 +13,7 @@ import { RoleSwitch } from '../components/RoleSwitch';
 import { ThemeSwitch } from '../components/ThemeSwitch';
 import { SbarPanel } from './SbarPanel';
 import { ImpactBar } from './ImpactBar';
+import { RiskCard } from './RiskCard';
 import { AgentChat } from '../agent/AgentChat';
 import { nurseAgentContext } from '../agent/context';
 import { HealthApp, type Page } from '../health/HealthApp';
@@ -274,6 +275,7 @@ function PatientDetail({
       </section>
 
       <aside className="rail">
+        <RiskCard risk={riskFor(data, patientId)} />
         <div className="rail__head">
           <h2 className="panel__title">Alerts</h2>
           <span className="panel__code">

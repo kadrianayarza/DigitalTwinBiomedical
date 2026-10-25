@@ -68,6 +68,7 @@ import HealthSampleRow from "./health_sample_table";
 import MedicationRow from "./medication_table";
 import PatientRow from "./patient_table";
 import PresenceRow from "./presence_table";
+import RiskScoreRow from "./risk_score_table";
 import SbarReportRow from "./sbar_report_table";
 import SimStateRow from "./sim_state_table";
 import SymptomEntryRow from "./symptom_entry_table";
@@ -172,6 +173,17 @@ const tablesSchema = __schema({
       { name: 'presence_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, PresenceRow),
+  riskScore: __table({
+    name: 'risk_score',
+    indexes: [
+      { accessor: 'patientId', name: 'risk_score_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'risk_score_patient_id_key', constraint: 'unique', columns: ['patientId'] },
+    ],
+  }, RiskScoreRow),
   sbarReport: __table({
     name: 'sbar_report',
     indexes: [

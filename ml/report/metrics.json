@@ -1,0 +1,87 @@
+{
+  "data": "PhysioNet/CinC Challenge 2019 (open access, CC BY 4.0)",
+  "target": "sepsis onset within the next 6 hours (hourly), hours after onset excluded",
+  "train": {
+    "hospital": "A",
+    "patients": 17287,
+    "rows": 667134,
+    "positive_rate": 0.0137
+  },
+  "external_test": {
+    "hospital": "B (never seen in training)",
+    "patients": 20000,
+    "rows": 758026,
+    "positive_rate": 0.009
+  },
+  "trees": 161,
+  "features": 89,
+  "auroc": {
+    "model": 0.659,
+    "news2": 0.627,
+    "qsofa_partial": 0.569
+  },
+  "auprc": {
+    "model": 0.019,
+    "news2": 0.016,
+    "qsofa_partial": 0.011,
+    "prevalence": 0.009
+  },
+  "brier_calibrated": 0.0089,
+  "operating_points_external": {
+    "elevated (90% specificity on hospital A)": {
+      "threshold": 0.0254,
+      "sensitivity": 0.266,
+      "specificity": 0.902,
+      "ppv": 0.024
+    },
+    "high (97% specificity on hospital A)": {
+      "threshold": 0.0427,
+      "sensitivity": 0.098,
+      "specificity": 0.974,
+      "ppv": 0.033
+    },
+    "news2 >= 5": {
+      "threshold": 5.0,
+      "sensitivity": 0.253,
+      "specificity": 0.891,
+      "ppv": 0.021
+    },
+    "model at news2>=5 specificity": {
+      "threshold": 0.0244,
+      "sensitivity": 0.283,
+      "specificity": 0.891,
+      "ppv": 0.023
+    }
+  },
+  "patients_external": {
+    "elevated": {
+      "septic_patients": 1142,
+      "caught_within_12h_before_onset": 0.492,
+      "median_hours_warning": 8.0,
+      "non_septic_patients_ever_flagged": 0.399
+    },
+    "high": {
+      "septic_patients": 1142,
+      "caught_within_12h_before_onset": 0.232,
+      "median_hours_warning": 8.0,
+      "non_septic_patients_ever_flagged": 0.148
+    }
+  },
+  "top_features_mean_abs_shap": {
+    "Resp_min24": 0.168,
+    "Temp_last": 0.1088,
+    "Resp_mean24": 0.0725,
+    "Temp_min24": 0.0724,
+    "Resp_min6": 0.064,
+    "O2Sat_mean6": 0.0595,
+    "MAP_max6": 0.0581,
+    "DBP_min24": 0.0537,
+    "DBP_std6": 0.0503,
+    "HR_delta24": 0.0466,
+    "Resp_std6": 0.0464,
+    "SBP_max24": 0.0448,
+    "SI_min24": 0.044,
+    "SBP_mean24": 0.0438,
+    "HR_max24": 0.0408
+  }
+}

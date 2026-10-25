@@ -19,6 +19,7 @@ function useAllTables() {
   const [healthSamples] = useTable(tables.healthSample);
   const [healthDevices] = useTable(tables.healthDevice);
   const [medications] = useTable(tables.medication);
+  const [risks] = useTable(tables.riskScore);
   return {
     patients,
     patientsReady,
@@ -34,6 +35,7 @@ function useAllTables() {
     healthSamples,
     healthDevices,
     medications,
+    risks,
   };
 }
 
@@ -78,6 +80,10 @@ export function vitalsFor(data: TwinData, patientId: bigint) {
   return data.vitals
     .filter(v => v.patientId === patientId)
     .sort((a, b) => (a.ts.microsSinceUnixEpoch < b.ts.microsSinceUnixEpoch ? -1 : 1));
+}
+
+export function riskFor(data: TwinData, patientId: bigint) {
+  return data.risks.find(r => r.patientId === patientId);
 }
 
 export function symptomsFor(data: TwinData, patientId: bigint) {

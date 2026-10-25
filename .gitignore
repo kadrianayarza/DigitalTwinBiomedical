@@ -8,3 +8,6 @@ spacetime.local.json
 
 .env*.local
 *.tsbuildinfo
+ml/.venv/
+ml/.cache/
+__pycache__/

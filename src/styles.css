@@ -1967,6 +1967,10 @@ textarea:disabled {
   scrollbar-width: thin;
   padding-right: 2px;
 }
+/* The rail scrolls; cards with overflow: hidden would otherwise shrink to nothing. */
+.rail > * {
+  flex-shrink: 0;
+}
 .rail__head {
   display: flex;
   justify-content: space-between;
@@ -1978,6 +1982,97 @@ textarea:disabled {
   align-items: center;
   gap: 10px;
   color: var(--muted);
+}
+
+/* ---------- deterioration risk ---------- */
+.risk__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.risk__value {
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.risk__unit {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.risk__level {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+.risk__level--elevated {
+  color: var(--amber);
+}
+.risk__level--high {
+  color: var(--red);
+  background: rgba(220, 31, 52, 0.08);
+}
+.risk--high {
+  border-color: rgba(220, 31, 52, 0.45);
+}
+.risk__scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.risk__drivers {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+}
+.risk__drivers li {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+}
+.risk__arrow {
+  font-size: 9px;
+}
+.risk__up .risk__arrow {
+  color: var(--red);
+}
+.risk__down .risk__arrow {
+  color: var(--green);
+}
+.risk__label {
+  color: var(--muted);
+}
+.risk__about {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.risk__about summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.risk__about p {
+  margin: 6px 0 0;
+  line-height: 1.45;
 }
 
 .alert-card {

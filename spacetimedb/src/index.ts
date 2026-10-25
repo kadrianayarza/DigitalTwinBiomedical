@@ -22,6 +22,7 @@ import {
 import {
   BITDEER_CHAT_URL,
   DEFAULT_UNCERTAINTY_MODEL,
+  ML_RISK_PRIORITY,
   REASON_LABEL,
   SCENARIOS,
   TRIAGE_SYSTEM_PROMPT,
@@ -36,6 +37,8 @@ import {
   vitalRules,
   type RuleHit,
 } from './clinical';
+import * as RISK_MODEL from './riskModelData';
+import { levelFor, scoreRisk, type Driver, type HourRow } from './riskModel';
 
 // ---------------------------------------------------------------------------
 // Tables
@@ -118,6 +121,20 @@ const vitalSign = table(
     spo2: t.f32(),
     tempC: t.f32(),
     source: t.string(), // 'sim' | 'phone'
+  }
+);
+
+/** Latest deterioration-model score per patient. Advisory; shown to nurses only. */
+const riskScore = table(
+  { name: 'risk_score', public: true },
+  {
+    patientId: t.u64().primaryKey(),
+    prob: t.f64(), // calibrated chance of sepsis onset within 6 hours
+    level: t.string(), // 'low' | 'elevated' | 'high'
+    drivers: t.string(), // JSON Driver[] (label, value, effect in log-odds)
+    history: t.string(), // JSON number[] of recent scores, oldest first
+    hours: t.u32(), // readings in the model's window
+    updatedAt: t.timestamp(),
   }
 );
 
@@ -308,6 +325,7 @@ const spacetimedb = schema(
     symptomEntry,
     vitalSign,
     vitalSample,
+    riskScore,
     alert,
     sbarReport,
     auditEvent,
@@ -450,6 +468,46 @@ function recentVitals(ctx: Ctx, patientId: bigint) {
   return [...ctx.db.vitalSign.patientId.filter(patientId)].sort((a, b) =>
     a.ts.microsSinceUnixEpoch < b.ts.microsSinceUnixEpoch ? -1 : 1
   );
+}
+
+// The model reads hourly vitals; the demo pod compresses time so each 5 s reading counts as one hour.
+const RISK_WINDOW = 48;
+const RISK_HISTORY = 60;
+const RISK_MIN_READINGS = 6;
+const LEVEL_RANK: Record<string, number> = { low: 0, elevated: 1, high: 2 };
+
+type VitalRow = ReturnType<typeof recentVitals>[number];
+
+function updateRisk(ctx: Ctx, patientId: bigint, window: VitalRow[]) {
+  const p = ctx.db.patient.id.find(patientId);
+  if (!p || window.length === 0) return;
+  const rows: HourRow[] = window
+    .slice(-RISK_WINDOW)
+    .map(v => [v.hr, v.spo2, v.tempC, v.systolic, v.diastolic, v.respRate]);
+  const r = scoreRisk(RISK_MODEL, rows, p.age);
+  const prev = ctx.db.riskScore.patientId.find(patientId);
+  const history: number[] = prev ? JSON.parse(prev.history) : [];
+  const recentPeak = Math.max(0, ...history.slice(-12).map(x => LEVEL_RANK[levelFor(RISK_MODEL, x)]!));
+  const drivers: Driver[] = r.drivers.map(d => ({
+    ...d,
+    value: Math.round(d.value * 100) / 100,
+    effect: Math.round(d.effect * 1000) / 1000,
+  }));
+  const row = {
+    patientId,
+    prob: r.prob,
+    level: r.level,
+    drivers: JSON.stringify(drivers),
+    history: JSON.stringify([...history, Math.round(r.prob * 1e5) / 1e5].slice(-RISK_HISTORY)),
+    hours: rows.length,
+    updatedAt: ctx.timestamp,
+  };
+  if (prev) ctx.db.riskScore.patientId.update(row);
+  else ctx.db.riskScore.insert(row);
+
+  // Alert only when the level rises above anything seen in the last 12 readings, so it does not re-fire on flicker.
+  const hit = ML_RISK_PRIORITY[r.level];
+  if (hit && rows.length >= RISK_MIN_READINGS && LEVEL_RANK[r.level]! > recentPeak) raiseAlerts(ctx, patientId, [hit]);
 }
 
 function ensureSimTimer(ctx: Ctx) {
@@ -620,6 +678,7 @@ function clearClinicalData(ctx: Ctx) {
   for (const r of ctx.db.symptomEntry.iter()) ctx.db.symptomEntry.id.delete(r.id);
   for (const r of ctx.db.vitalSign.iter()) ctx.db.vitalSign.id.delete(r.id);
   for (const r of ctx.db.vitalSample.iter()) ctx.db.vitalSample.id.delete(r.id);
+  for (const r of ctx.db.riskScore.iter()) ctx.db.riskScore.patientId.delete(r.patientId);
   for (const r of ctx.db.alert.iter()) ctx.db.alert.id.delete(r.id);
   for (const r of ctx.db.sbarReport.iter()) ctx.db.sbarReport.id.delete(r.id);
   for (const r of ctx.db.auditEvent.iter()) ctx.db.auditEvent.id.delete(r.id);
@@ -1233,6 +1292,7 @@ export const simTick = spacetimedb.reducer(
       if (tick % 2 === 0) {
         raiseAlerts(ctx, s.patientId, vitalRules(window.slice(-60)));
       }
+      updateRisk(ctx, s.patientId, window);
     }
   }
 );
@@ -1259,6 +1319,22 @@ type TriageResult = {
   uncertainties: string[];
   questions_for_patient: string[];
 };
+
+function riskSummary(risk: { prob: number; level: string; drivers: string; hours: number }) {
+  const drivers: Driver[] = JSON.parse(risk.drivers);
+  return {
+    output: 'Calibrated chance of sepsis onset within the next 6 hours, from vital-sign trends',
+    probability_pct: Math.round(risk.prob * 1000) / 10,
+    level: risk.level,
+    level_thresholds_pct: {
+      elevated: Math.round(RISK_MODEL.THRESHOLDS.elevated * 1000) / 10,
+      high: Math.round(RISK_MODEL.THRESHOLDS.high * 1000) / 10,
+    },
+    top_drivers: drivers.map(d => `${d.label} ${d.value} (${d.effect > 0 ? 'raises' : 'lowers'} risk)`),
+    readings_used: risk.hours,
+    limitations: `Advisory only. Gradient-boosted trees trained on ICU stays (PhysioNet 2019, hospital A); AUROC ${RISK_MODEL.MODEL_CARD.auroc} on an unseen hospital versus ${RISK_MODEL.MODEL_CARD.aurocNews2} for NEWS2. Not validated for home monitoring. Pod vitals are simulated, and each 5-second reading stands in for one hour.`,
+  };
+}
 
 function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
   const report = ctx.db.sbarReport.id.find(sbarId);
@@ -1303,6 +1379,7 @@ function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
     };
   };
   const codes = a.reasonCodes.split(',').filter(Boolean);
+  const risk = ctx.db.riskScore.patientId.find(p.id);
   const payload = JSON.stringify(
     {
       patient: {
@@ -1326,6 +1403,7 @@ function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
         temperature_c: stat(v => v.tempC),
       },
       wearables_and_home_logs: healthDigest(healthPoints(ctx, p.id), Number(ctx.timestamp.microsSinceUnixEpoch)),
+      deterioration_model: risk ? riskSummary(risk) : null,
     },
     null,
     2

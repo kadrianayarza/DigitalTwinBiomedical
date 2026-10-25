@@ -1,5 +1,6 @@
 import type { Patient } from '../module_bindings/types';
-import { activeAlertFor, symptomsFor, vitalsFor, type TwinData } from '../lib/data';
+import { activeAlertFor, riskFor, symptomsFor, vitalsFor, type TwinData } from '../lib/data';
+import { MODEL_CARD, RISK_LEVEL_LABEL, driverValue, parseRisk, pct } from '../lib/risk';
 import { PRIORITY_LABEL, REASON_LABEL, SCENARIO_LABEL, careLabel, daysSince, timeAgo } from '../lib/format';
 import { regionLabel } from '../twin/bodyModel';
 import { healthDigest } from '../../spacetimedb/src/health';
@@ -43,6 +44,19 @@ function vitalsSummary(data: TwinData, patientId: bigint) {
       spo2_pct: mean(v => v.spo2),
       temperature_c: mean(v => v.tempC),
     },
+  };
+}
+
+/** Nurse-only: the advisory model score with its limits stated alongside. */
+function riskSummary(data: TwinData, patientId: bigint) {
+  const row = riskFor(data, patientId);
+  if (!row) return null;
+  const r = parseRisk(row);
+  return {
+    chance_of_sepsis_onset_in_6h: pct(r.prob),
+    level: RISK_LEVEL_LABEL[r.level] ?? r.level,
+    top_drivers: r.drivers.map(d => `${d.label} ${driverValue(d)} (${d.effect > 0 ? 'raises' : 'lowers'} risk)`),
+    limitations: `Advisory. Trained on ICU vitals (PhysioNet 2019), AUROC ${MODEL_CARD.auroc} on an unseen hospital vs ${MODEL_CARD.aurocNews2} for NEWS2; not validated for home use; simulated pod, one reading stands in for one hour.`,
   };
 }
 
@@ -99,6 +113,7 @@ export function patientAgentContext(data: TwinData, patient: Patient) {
 export function nurseAgentContext(data: TwinData, selected: Patient | undefined) {
   const census = data.patients.map(p => {
     const v = vitalsSummary(data, p.id);
+    const risk = riskFor(data, p.id);
     return {
       id: String(p.id),
       name: p.name,
@@ -106,6 +121,7 @@ export function nurseAgentContext(data: TwinData, selected: Patient | undefined)
       condition: careLabel(p),
       monitoring_day: daysSince(p.surgeryAt),
       latest_vitals: v?.latest ?? null,
+      risk_model: risk ? `${pct(risk.prob)} chance of sepsis onset in 6 h (${risk.level}, advisory)` : null,
       active_alert: alertSummary(data, p.id),
       check_ins: symptomsFor(data, p.id).length,
     };
@@ -123,6 +139,7 @@ export function nurseAgentContext(data: TwinData, selected: Patient | undefined)
       condition: careLabel(selected),
       monitoring_day: daysSince(selected.surgeryAt),
       pod_vitals: vitalsSummary(data, selected.id),
+      deterioration_model: riskSummary(data, selected.id),
       wearables_and_home_logs: homeData(data, selected.id),
       recent_check_ins_newest_first: checkIns(data, selected.id, 8),
       active_alert: alertSummary(data, selected.id),

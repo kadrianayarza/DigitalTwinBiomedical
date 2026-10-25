@@ -70,6 +70,8 @@ export const REASON_LABEL: Record<string, string> = {
   WEARABLE_LOW_SPO2: 'Watch blood oxygen below 90%',
   IRREGULAR_RHYTHM: 'Irregular rhythm notification from the watch',
   GLUCOSE_OUT_OF_RANGE: 'Blood glucose below 70 or above 300 mg/dL',
+  ML_RISK_ELEVATED: 'Risk model: elevated sepsis risk (advisory)',
+  ML_RISK_HIGH: 'Risk model: high sepsis risk (advisory)',
 };
 
 export const SCENARIO_LABEL: Record<string, string> = {
