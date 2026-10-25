@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { EXAMPLE_CHECK_INS } from '../spacetimedb/src/examples.ts';
+import { DEMO_DEVICES, EXAMPLE_CHECK_INS } from '../spacetimedb/src/examples.ts';
 import { symptomRules } from '../spacetimedb/src/clinical.ts';
+import { LIBRARY, matchEntry } from '../spacetimedb/src/library.ts';
 
 const SIDES = {
   'Kadrian Ayarza': 'right',
@@ -10,6 +11,9 @@ const SIDES = {
   'Tom Becker': 'left',
   'Mei Lin Wu': 'right',
   'Elena Novak': 'right',
+  'Maria Delgado': 'right',
+  'Daniel Cho': 'right',
+  'Priya Nair': 'right',
 };
 
 const asEntry = ex => ({
@@ -44,4 +48,21 @@ test('example check-ins use valid severities and points', () => {
     assert.ok(ex.point.every(Number.isFinite) && ex.point[1] >= 0 && ex.point[1] < 1.8);
     assert.ok(ex.minutesAgo > 0);
   }
+});
+
+test('demo devices cover the roster and resolve against the device library', () => {
+  // The roster keys match the check-in seeds, so every patient is addressable.
+  assert.deepEqual(Object.keys(DEMO_DEVICES).sort(), Object.keys(SIDES).sort());
+  // matchEntry expects the stored row shape: aliases joined into one string.
+  const devices = LIBRARY.filter(e => e.kind === 'device').map(e => ({ ...e, aliases: e.aliases.join(',') }));
+  for (const [name, list] of Object.entries(DEMO_DEVICES)) {
+    for (const [device, detail, since] of list) {
+      assert.ok(device.trim() && detail.trim().length <= 500 && since.trim().length <= 100, name);
+      // Seeding mirrors the reducer: a name match wins, otherwise the general entry.
+      const slug = matchEntry(devices, device, 'device')?.slug ?? 'assistive-device';
+      assert.ok(LIBRARY.some(e => e.slug === slug), `${device} resolves to ${slug}`);
+    }
+  }
+  // The wheelchair device is what seats the twin, so the seeded chair must resolve to it.
+  assert.equal(matchEntry(devices, DEMO_DEVICES['Elena Novak'][0][0], 'device')?.slug, 'wheelchair');
 });

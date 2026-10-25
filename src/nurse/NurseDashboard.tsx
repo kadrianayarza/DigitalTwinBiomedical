@@ -1,23 +1,50 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
-import type { Alert } from '../module_bindings/types';
-import { activeAlertFor, riskFor, symptomsFor, useData, vitalsFor } from '../lib/data';
+import type { Alert, SystemAssessment } from '../module_bindings/types';
+import { activeAlertFor, assessmentsFor, chartUsesWheelchair, devicesFor, riskFor, symptomsFor, useData, userLayoutFor, vitalsFor } from '../lib/data';
 import { PRIORITY_LABEL, SCENARIO_LABEL, careLabel, clock, daysSince, isSurgical, timeAgo, usesWheelchair } from '../lib/format';
-import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
+import { TwinViewer, type TwinDevice, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { buildHotspots } from '../twin/hotspots';
 import { regionLabel } from '../twin/bodyModel';
 import { PodVitals } from '../components/PodVitals';
 import { Brand, Hex, Panel, SeverityHex, type HexTone } from '../components/ui';
-import { RoleSwitch } from '../components/RoleSwitch';
-import { ThemeSwitch } from '../components/ThemeSwitch';
+import { CustomizePanel } from '../components/CustomizePanel';
+import { LifestyleCard } from '../components/LifestyleCard';
+import { ExerciseCard } from '../components/ExerciseCard';
+import { DeviceSheet } from '../components/DeviceSheet';
+import { MentalHealthCard } from '../components/MentalHealthCard';
+import { ScheduleCard } from '../components/ScheduleCard';
+import { VoiceAssistant } from '../components/VoiceAssistant';
+import { FamilyRoster } from '../patient/FamilyAccessCard';
+import { visibleTabs, type TabId } from '../lib/voice';
 import { SbarPanel } from './SbarPanel';
 import { ImpactBar } from './ImpactBar';
+import { MedicationPanel } from './MedicationPanel';
+import { ChartPanel } from './ChartPanel';
+import { AssessmentPanel } from './AssessmentPanel';
+import { AssessmentSheet } from './AssessmentSheet';
+import {
+  assessmentPinRowId,
+  assessmentPins,
+  isAssessmentSystem,
+  systemForRegion,
+  type AssessmentSystem,
+} from '../lib/assessment';
+import { LibraryPage } from '../library/LibraryPage';
+import { LibraryDrawer } from '../library/LibraryDrawer';
+import { LibraryEntryForm } from '../library/LibraryEntryForm';
+import type { LibraryEntry } from '../module_bindings/types';
+import { RoleSwitch } from '../components/RoleSwitch';
+import { ThemeSwitch } from '../components/ThemeSwitch';
 import { RiskCard } from './RiskCard';
 import { AgentChat } from '../agent/AgentChat';
 import { nurseAgentContext } from '../agent/context';
 import { HealthApp, type Page } from '../health/HealthApp';
 import { HealthGlance } from '../health/HealthGlance';
+import { PAGE_TABS, useTabNavigator } from '../lib/navigate';
+import { CareMessagesCard } from '../components/CareMessagesCard';
+import { PageNav, useShellPage, type ShellPage } from '../components/PageNav';
 
 const PRIORITY_TONE: Record<string, HexTone> = {
   emergency: 'alarm',
@@ -30,17 +57,28 @@ export function NurseDashboard() {
   const data = useData();
   const [selectedId, setSelectedId] = useState<bigint | null>(null);
   const [selectedPin, setSelectedPin] = useState<string | undefined>();
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libSlug, setLibSlug] = useState<string | null>(null);
+  const [editingEntry, setEditingEntry] = useState<LibraryEntry | 'new' | null>(null);
   const updatePointer = useReducer(reducers.updatePointer);
 
   const census = useMemo(() => data.patients.map(p => ({ p, alert: activeAlertFor(data, p.id) })), [data]);
 
   const selected = data.patients.find(p => p.id === selectedId) ?? census[0]?.p;
+  const navigateTab = useTabNavigator(selected?.id ?? 0n, 'nurse');
+  const [page, setPage] = useShellPage();
 
   return (
     <div className="nurse">
       <header className="topbar topbar--nurse">
         <Brand sub="Nurse console" />
         <ImpactBar />
+        <button
+          className={`btn ${libraryOpen ? 'btn--ghost' : ''}`}
+          onClick={() => setLibraryOpen(v => !v)}
+        >
+          {libraryOpen ? 'Back to patients' : 'Library'}
+        </button>
         <div className="topbar__who">
           <strong>{data.me?.name}</strong>
         </div>
@@ -50,12 +88,15 @@ export function NurseDashboard() {
         )}
       </header>
 
-      <div className="nurse__grid">
-        <aside className="census panel">
-          <header className="panel__head">
-            <h2 className="panel__title">Patients</h2>
-            <span className="panel__code">{census.length} at home</span>
-          </header>
+        {libraryOpen ? (
+          <LibraryPage
+            onOpen={setLibSlug}
+            onNew={() => setEditingEntry('new')}
+            onClose={() => setLibraryOpen(false)}
+          />
+        ) : (
+        <div className="nurse__grid">
+        <Panel title="Patients" code={`${census.length} at home`} className="census" collapsible>
           <div className="census__list">
             {census.map(({ p, alert }) => {
               const v = vitalsFor(data, p.id).at(-1);
@@ -85,14 +126,17 @@ export function NurseDashboard() {
               );
             })}
           </div>
-        </aside>
+        </Panel>
 
         {selected ? (
           <PatientDetail
             key={String(selected.id)}
             patientId={selected.id}
+            page={page}
+            onPageChange={setPage}
             selectedPin={selectedPin}
             onSelectPin={setSelectedPin}
+            onOpenLibrary={setLibSlug}
             onHover={p =>
               void updatePointer({
                 patientId: selected.id,
@@ -106,7 +150,23 @@ export function NurseDashboard() {
         ) : (
           <div className="empty">No patients yet.</div>
         )}
-      </div>
+        </div>
+        )}
+        {libSlug && (
+          <LibraryDrawer
+            slug={libSlug}
+            audience="nurse"
+            onNavigate={setLibSlug}
+            onClose={() => setLibSlug(null)}
+            onEdit={e => setEditingEntry(e)}
+          />
+        )}
+        {editingEntry && (
+          <LibraryEntryForm
+            existing={editingEntry === 'new' ? undefined : editingEntry}
+            onClose={() => setEditingEntry(null)}
+          />
+        )}
 
       <AgentChat
         audience="nurse"
@@ -122,6 +182,7 @@ export function NurseDashboard() {
         ]}
         disclaimer="Decision support only. Verify against the chart before acting."
         buildContext={() => nurseAgentContext(data, selected)}
+        onNavigate={navigateTab}
       />
     </div>
   );
@@ -134,13 +195,19 @@ function PriorityHex({ alert }: { alert: Alert | undefined }) {
 
 function PatientDetail({
   patientId,
+  page,
+  onPageChange,
   selectedPin,
   onSelectPin,
+  onOpenLibrary,
   onHover,
 }: {
   patientId: bigint;
+  page: ShellPage;
+  onPageChange: (page: ShellPage) => void;
   selectedPin?: string;
   onSelectPin: (id: string) => void;
+  onOpenLibrary: (slug: string) => void;
   onHover: (p: [number, number, number] | null) => void;
 }) {
   const data = useData();
@@ -159,8 +226,19 @@ function PatientDetail({
     .slice(0, 25);
   const sim = data.sims.find(s => s.patientId === patientId);
   const top = alerts[0];
+  const [showTwin, setShowTwin] = useState(true);
+  // The nurse arranges their own console ("Your app" page): on/off and priorities are theirs.
+  const nurseTabs: TabId[] = visibleTabs(userLayoutFor(data, data.me?.identity).tabs, 'nurse');
   const [vitalsTab, setVitalsTab] = useState<'pod' | 'home'>('pod');
   const [health, setHealth] = useState<Page | null>(null);
+  // Open assessment sheet: from a tap on the 3D model, a panel row, or a marker click.
+  const [assess, setAssess] = useState<{
+    region: string;
+    system: AssessmentSystem;
+    existing?: SystemAssessment;
+  } | null>(null);
+  // Tapped 3D device prop; the sheet confirms or reviews it.
+  const [devicePick, setDevicePick] = useState<string | null>(null);
   const tabs = (
     <span className="ptabs" role="tablist">
       {(
@@ -176,17 +254,127 @@ function PatientDetail({
     </span>
   );
 
-  const pins: TwinPin[] = symptoms.slice(0, 12).map(s => ({
-    id: String(s.id),
-    x: s.x,
-    y: s.y,
-    z: s.z,
-    severity: s.severity,
-    label: `${regionLabel(s.region)} · ${s.severity}/10 · ${timeAgo(s.createdAt)}`,
-  }));
+  const pins: TwinPin[] = [
+    ...symptoms.slice(0, 12).map(s => ({
+      id: String(s.id),
+      x: s.x,
+      y: s.y,
+      z: s.z,
+      severity: s.severity,
+      label: `${regionLabel(s.region)} · ${s.severity}/10 · ${timeAgo(s.createdAt)}`,
+    })),
+    // Head-to-toe findings ride along as diamond markers, latest per system.
+    ...assessmentPins(assessmentsFor(data, patientId)),
+  ];
+
+  // Equipment on the chart becomes 3D props around the twin.
+  const chartDevices = devicesFor(data, patientId);
+  const twinDevices = useMemo<TwinDevice[]>(
+    () =>
+      chartDevices.map(d => ({
+        id: String(d.id),
+        slug: d.slug,
+        name: d.name,
+        confirmed: !!d.confirmedBy,
+      })),
+    [chartDevices]
+  );
+  const pickedDevice = devicePick ? chartDevices.find(d => String(d.id) === devicePick) : undefined;
+
+  // Check-in pins select the timeline entry; assessment markers open their finding.
+  const handleSelectPin = (id: string) => {
+    const rowId = assessmentPinRowId(id);
+    if (rowId !== null) {
+      const existing = data.systemAssessments.find(a => a.id === rowId);
+      if (existing) {
+        setAssess({
+          region: existing.region,
+          system: isAssessmentSystem(existing.system) ? existing.system : systemForRegion(existing.region),
+          existing,
+        });
+        return;
+      }
+    }
+    onSelectPin(id);
+  };
   const pointers: TwinPointer[] = data.presence
     .filter(p => p.patientId === patientId && p.pointing && p.role === 'patient')
     .map(p => ({ id: p.identity.toHexString(), name: p.name, x: p.x, y: p.y, z: p.z, color: '#0f8a4d' }));
+
+  // The chart folds the record, history, and devices into one panel; it renders once,
+  // at the position of whichever of those tabs the nurse has ranked highest.
+  const CHART_TABS: TabId[] = ['health-record', 'history', 'devices'];
+  const firstChart = nurseTabs.find(id => CHART_TABS.includes(id));
+  const nurseOrder = nurseTabs.filter(
+    id => id !== 'check-ins' && id !== 'twin' && !PAGE_TABS.has(id) && (!CHART_TABS.includes(id) || id === firstChart)
+  );
+
+  function renderNurseTab(id: TabId): ReactNode {
+    switch (id) {
+      case 'vitals':
+        return (
+          <div key="vitals" data-tab="vitals" className="tabslot">
+            {vitalsTab === 'pod' ? (
+              <PodVitals vitals={vitals} detailed title={tabs} />
+            ) : (
+              <HealthGlance patient={patient} variant="nurse" title={tabs} onOpen={p => setHealth(p ?? { kind: 'summary' })} />
+            )}
+          </div>
+        );
+      case 'medications':
+        return (
+          <div key="medications" data-tab="medications" className="tabslot">
+            <MedicationPanel patientId={patientId} patientName={patient.name} />
+          </div>
+        );
+      case 'assessment':
+        return (
+          <div key="assessment" data-tab="assessment" className="tabslot">
+            <AssessmentPanel
+              patientId={patientId}
+              patientName={patient.name}
+              onOpenAssessment={(system, existing) =>
+                setAssess({ region: existing?.region ?? '', system, existing })
+              }
+            />
+          </div>
+        );
+      case 'health-record':
+      case 'history':
+      case 'devices':
+        return (
+          <div key="labs" data-tab="labs" className="tabslot">
+            <ChartPanel patientId={patientId} patientName={patient.name} onOpenLibrary={onOpenLibrary} />
+          </div>
+        );
+      case 'diet':
+        return (
+          <div key="diet" data-tab="diet" className="tabslot">
+            <LifestyleCard patientId={patientId} kind="diet" />
+          </div>
+        );
+      case 'sleep':
+        return (
+          <div key="sleep" data-tab="sleep" className="tabslot">
+            <LifestyleCard patientId={patientId} kind="sleep" />
+          </div>
+        );
+      case 'exercise':
+        return (
+          <div key="exercise" data-tab="exercise" className="tabslot">
+            <ExerciseCard patientId={patientId} />
+          </div>
+        );
+      case 'mood':
+        return (
+          <div key="mood" data-tab="mood" className="tabslot">
+            <MentalHealthCard patientId={patientId} patientName={patient.name} mode="nurse" />
+          </div>
+        );
+      default:
+        return null;
+    }
+  }
 
   return (
     <>
@@ -207,23 +395,53 @@ function PatientDetail({
           </div>
         </header>
 
-        <div className="detail__body">
-          <div className="detail__twin">
-            <TwinViewer
-              side={patient.side === 'left' ? 'left' : 'right'}
-              pins={pins}
-              pointers={pointers}
-              selectedPinId={selectedPin}
-              onSelectPin={onSelectPin}
-              onHover={onHover}
-              twinUrl={patient.twinUrl}
-              seated={usesWheelchair(patient)}
-              hotspots={buildHotspots({ vitals, audience: 'nurse' })}
-              procedure={patient.procedure}
-              compact
-            />
+        <PageNav page={page} onChange={onPageChange} tabs={nurseTabs} />
+
+        {page !== 'home' ? (
+          <div className="pageview" data-tab={page}>
+            {page === 'schedule' ? (
+              <ScheduleCard patientId={patientId} patientName={patient.name} mode="nurse" />
+            ) : page === 'messages' ? (
+              <CareMessagesCard patientId={patientId} patientName={patient.name} mode="nurse" />
+            ) : (
+              <CustomizePanel self />
+            )}
           </div>
-          <Panel title="Check-ins" code={`${symptoms.length} total`} className="detail__timeline">
+        ) : (
+        <>
+        <div className="detail__body">
+          <div className="detail__twin" data-tab="twin-stage">
+            {showTwin ? (
+              <TwinViewer
+                side={patient.side === 'left' ? 'left' : 'right'}
+                pins={pins}
+                pointers={pointers}
+                devices={twinDevices}
+                selectedPinId={selectedPin}
+                onSelectPin={handleSelectPin}
+                onSelectDevice={setDevicePick}
+                onTap={region => setAssess({ region, system: systemForRegion(region) })}
+                onHover={onHover}
+                twinUrl={patient.twinUrl}
+                seated={usesWheelchair(patient) || chartUsesWheelchair(data, patientId)}
+                procedure={patient.procedure}
+                hotspots={buildHotspots({ vitals, audience: 'nurse' })}
+                compact
+              />
+            ) : (
+              <div className="twin-off">
+                <span className="muted small">3D model hidden</span>
+              </div>
+            )}
+            <button
+              className="twin-toggle twin-toggle--inline"
+              aria-pressed={showTwin}
+              onClick={() => setShowTwin(v => !v)}
+            >
+              {showTwin ? 'Hide 3D model' : 'Show 3D model'}
+            </button>
+          </div>
+          <Panel title="Check-ins" code={`${symptoms.length} total`} className="detail__timeline" dataTab="check-ins" collapsible>
             {symptoms.length === 0 ? (
               <p className="muted">No check-ins yet.</p>
             ) : (
@@ -266,33 +484,59 @@ function PatientDetail({
           </Panel>
         </div>
 
-        {vitalsTab === 'pod' ? (
-          <PodVitals vitals={vitals} detailed title={tabs} />
-        ) : (
-          <HealthGlance patient={patient} variant="nurse" title={tabs} onOpen={p => setHealth(p ?? { kind: 'summary' })} />
+        {nurseOrder.map(id => renderNurseTab(id))}
+        <div data-tab="family" className="tabslot">
+          <FamilyRoster patientId={patientId} />
+        </div>
+        </>
         )}
         {health && <HealthApp key={String(patientId)} patient={patient} viewer="nurse" initial={health} onClose={() => setHealth(null)} />}
       </section>
+      {assess && (
+        <AssessmentSheet
+          patientId={patientId}
+          patientName={patient.name}
+          region={assess.region}
+          existing={assess.existing}
+          system={assess.system}
+          onClose={() => setAssess(null)}
+        />
+      )}
+      {pickedDevice && (
+        <DeviceSheet
+          device={pickedDevice}
+          patientName={patient.name}
+          mode="nurse"
+          onOpenLibrary={onOpenLibrary}
+          onClose={() => setDevicePick(null)}
+        />
+      )}
+      <VoiceAssistant patientId={patientId} audience="nurse" />
 
       <aside className="rail">
         <RiskCard risk={riskFor(data, patientId)} />
-        <div className="rail__head">
-          <h2 className="panel__title">Alerts</h2>
-          <span className="panel__code">
-            {alerts.length} active{resolvedCount > 0 && ` · ${resolvedCount} resolved`}
-          </span>
-        </div>
-        {alerts.length === 0 ? (
-          <div className="panel rail__empty">
-            <Hex tone="ok" /> No active alerts.
+        <details className="rail__section" open>
+          <summary className="rail__head">
+            <h2 className="panel__title">Alerts</h2>
+            <span className="panel__code">
+              {alerts.length} active{resolvedCount > 0 && ` · ${resolvedCount} resolved`}
+            </span>
+            <span className="panel__chevron" aria-hidden />
+          </summary>
+          <div className="rail__list">
+            {alerts.length === 0 ? (
+              <div className="panel rail__empty">
+                <Hex tone="ok" /> No active alerts.
+              </div>
+            ) : (
+              alerts.map(a => (
+                <SbarPanel key={String(a.id)} alert={a} report={data.reports.find(r => r.alertId === a.id)} />
+              ))
+            )}
           </div>
-        ) : (
-          alerts.map(a => (
-            <SbarPanel key={String(a.id)} alert={a} report={data.reports.find(r => r.alertId === a.id)} />
-          ))
-        )}
+        </details>
 
-        <Panel title="Audit trail" code="Read-only log" className="auditpanel">
+        <Panel title="Audit trail" code="Read-only log" className="auditpanel" collapsible>
           <ol className="audit">
             {audit.map(e => (
               <li key={String(e.id)}>
@@ -307,7 +551,10 @@ function PatientDetail({
         </Panel>
 
         <details className="panel demo">
-          <summary>Controls</summary>
+          <summary>
+            <span>Controls</span>
+            <span className="panel__chevron" aria-hidden />
+          </summary>
           <div className="demo__row">
             <span className="small muted">Simulated pod pattern for {patient.name.split(' ')[0]}</span>
             <div className="chips">

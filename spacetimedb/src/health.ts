@@ -457,6 +457,15 @@ const ELENA_MEDS: DemoMedication[] = [
   { name: 'Baclofen 10 mg', dose: '1 tablet for spasticity', schedule: 'Three times daily' },
   { name: 'Oxybutynin 5 mg', dose: '1 tablet', schedule: 'Twice daily' },
 ];
+const MARIA_MEDS: DemoMedication[] = [
+  { name: 'Lithium 300 mg', dose: '2 tablets', schedule: 'Twice daily' },
+];
+const DANIEL_MEDS: DemoMedication[] = [
+  { name: 'Sertraline 50 mg', dose: '1 tablet', schedule: 'Once daily' },
+];
+const PRIYA_MEDS: DemoMedication[] = [
+  { name: 'Sertraline 50 mg', dose: '1 tablet', schedule: 'Once daily' },
+];
 
 const TYPICAL: Record<string, [Gen, number]> = {
   steps: [flat(6500), 0.15],
@@ -790,6 +799,104 @@ export const DEMO_HEALTH: Record<string, DemoProfile> = {
         events(out, 'menstrual_flow', [[d * 1440 + 500, d === 22 ? 2 : d === 18 ? 1 : 3]], 'Logged by patient', 'manual');
       }
       events(out, 'mood', [[300, 2, 'Proud'], [2000, 1, 'Calm'], [4400, 1, 'Grateful']], 'Logged by patient', 'manual');
+      return out;
+    },
+  },
+
+  // Bipolar I maintenance: sleep collapses and activity climbs over the last week as mood rises.
+  'Maria Delgado': {
+    devices: [{ kind: 'apple_watch', name: 'Apple Watch Series 10' }],
+    medications: MARIA_MEDS,
+    history: rand => {
+      const out: DemoSample[] = [];
+      const w = { kind: 'apple_watch', name: 'Apple Watch Series 10' };
+      // Sleep falls from 7.5 h to about 4 h as the week goes on; steps and daylight climb.
+      const climb = (base: number, now: number): Gen => d => (d > 7 ? base : ramp(d, 7, 0, base, now));
+      daily(out, w, rand, {
+        steps: [climb(8600, 13400), 0.12],
+        distance: [climb(6.1, 9.4), 0.12],
+        active_energy: [climb(430, 640), 0.1],
+        exercise_minutes: [climb(34, 52), 0.25],
+        stand_hours: [climb(11, 16), 0.1],
+        flights_climbed: [climb(8, 14), 0.3],
+        resting_heart_rate: [flat(58), 0.03],
+        walking_heart_rate: [flat(96), 0.03],
+        hrv: [climb(64, 52), 0.08],
+        respiratory_rate: [flat(14), 0.04],
+        blood_oxygen: [flat(97.5), 0.008],
+        time_in_daylight: [climb(70, 105), 0.3],
+        environmental_audio: [flat(64), 0.06],
+        weight: [d => (d % 4 === 0 ? 63.4 : null), 0.004],
+      });
+      sleepNights(out, w, rand, d => (d > 7 ? 7.5 : ramp(d, 7, 0, 7.1, 4.1)), d => (d > 7 ? 0.4 : 0.7));
+      heartRateHours(out, w, rand, 58, 102);
+      doses(out, MARIA_MEDS, [], 'Logged by patient');
+      events(out, 'workouts', [[260, 48, 'Morning run'], [1700, 42, 'Morning run'], [4200, 55, 'Late-night run']], w.name, 'apple_health');
+      events(out, 'mood', [[240, 3, 'Energized'], [2900, 2, 'Racing'], [5900, 0, 'Even'], [9800, -1, 'Low']], 'Logged by patient', 'manual');
+      return out;
+    },
+  },
+
+  // Depression with hypersomnia: long sleep that does not refresh, very low activity and daylight.
+  'Daniel Cho': {
+    devices: [{ kind: 'fitbit', name: 'Fitbit Charge 6' }],
+    medications: DANIEL_MEDS,
+    history: rand => {
+      const out: DemoSample[] = [];
+      const f = { kind: 'fitbit', name: 'Fitbit Charge 6' };
+      daily(out, f, rand, {
+        steps: [d => ramp(d, 28, 0, 6100, 1300), 0.15],
+        distance: [d => ramp(d, 28, 0, 4.3, 0.9), 0.15],
+        active_energy: [d => ramp(d, 28, 0, 330, 90), 0.12],
+        exercise_minutes: [d => ramp(d, 28, 0, 24, 3), 0.3],
+        flights_climbed: [flat(2), 0.4],
+        resting_heart_rate: [flat(62), 0.03],
+        hrv: [d => ramp(d, 28, 0, 58, 41), 0.1],
+        respiratory_rate: [flat(14.5), 0.04],
+        blood_oxygen: [flat(97), 0.008],
+        time_in_daylight: [d => ramp(d, 28, 0, 58, 12), 0.3],
+        environmental_audio: [flat(58), 0.06],
+        headphone_audio: [d => ramp(d, 28, 0, 48, 72), 0.06],
+        weight: [d => (d % 5 === 0 ? 70.9 : null), 0.004],
+      });
+      sleepNights(out, f, rand, d => ramp(d, 28, 0, 7.4, 9.6), d => ramp(d, 28, 0, 0.5, 1.3));
+      heartRateHours(out, f, rand, 62, 88);
+      doses(out, DANIEL_MEDS, [['Sertraline 50 mg', 2]], 'Logged by patient');
+      events(out, 'mood', [[300, -2, 'Heavy'], [2200, -2, 'Flat'], [5200, -1, 'Tired'], [9000, 0, 'Okay']], 'Logged by patient', 'manual');
+      return out;
+    },
+  },
+
+  // Generalized anxiety: steady moderate values with breathing practice and caffeine tapering off.
+  'Priya Nair': {
+    devices: [{ kind: 'apple_watch', name: 'Apple Watch SE' }],
+    medications: PRIYA_MEDS,
+    history: rand => {
+      const out: DemoSample[] = [];
+      const w = { kind: 'apple_watch', name: 'Apple Watch SE' };
+      daily(out, w, rand, {
+        steps: [flat(7300), 0.12],
+        distance: [flat(5.2), 0.12],
+        active_energy: [flat(330), 0.1],
+        exercise_minutes: [flat(30), 0.3],
+        stand_hours: [flat(12), 0.1],
+        flights_climbed: [flat(6), 0.3],
+        resting_heart_rate: [flat(66), 0.03],
+        walking_heart_rate: [flat(100), 0.03],
+        hrv: [d => ramp(d, 10, 0, 54, 47), 0.08],
+        respiratory_rate: [flat(15), 0.04],
+        blood_oxygen: [flat(97), 0.008],
+        time_in_daylight: [flat(60), 0.3],
+        environmental_audio: [flat(62), 0.06],
+        caffeine: [d => ramp(d, 21, 0, 210, 80), 0.2],
+        mindful_minutes: [d => (d % 2 === 0 ? 12 : null), 0.2],
+        weight: [d => (d % 6 === 0 ? 61.7 : null), 0.004],
+      });
+      sleepNights(out, w, rand, d => (d % 7 === 3 ? 5.8 : 7.0), flat(0.8));
+      heartRateHours(out, w, rand, 66, 108);
+      doses(out, PRIYA_MEDS, [], 'Logged by patient');
+      events(out, 'workouts', [[380, 35, 'Evening walk'], [2900, 35, 'Evening walk'], [6100, 35, 'Evening walk']], w.name, 'apple_health');
+      events(out, 'mood', [[320, 0, 'Steady'], [2400, -1, 'Wound up'], [5600, 1, 'Better']], 'Logged by patient', 'manual');
       return out;
     },
   },

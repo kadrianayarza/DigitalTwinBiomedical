@@ -18,6 +18,7 @@ import {
   useGltfStatus,
 } from './anatomy';
 import type { HotspotTone, TwinHotspot } from './hotspots';
+import { DeviceLayer, type TwinDevice } from './deviceProps';
 import { focusForCondition, hasKneeImplant, type FocusRegion } from './focus';
 import { createGroundShadowTexture, createTwinMaterials, setTwinMaterialMode, type TwinMaterials } from './materials';
 
@@ -29,16 +30,25 @@ export type TwinPin = {
   severity: number;
   label: string;
   pending?: boolean;
+  /** Fixed marker color (nursing assessments) instead of the severity ramp. */
+  tone?: 'ok' | 'alarm' | 'off';
+  /** Assessment markers draw a diamond ring so they read differently from symptom pins. */
+  diamond?: boolean;
 };
 
 export type TwinPointer = { id: string; name: string; x: number; y: number; z: number; color: string };
+export type { TwinDevice } from './deviceProps';
 
 type Props = {
   side: 'left' | 'right';
   pins: TwinPin[];
   pointers?: TwinPointer[];
+  /** Assistive devices on the chart, drawn as 3D props around the twin. */
+  devices?: TwinDevice[];
   selectedPinId?: string;
   onSelectPin?: (id: string) => void;
+  /** Tap on a device prop: opens its sheet for confirming or reviewing. */
+  onSelectDevice?: (id: string) => void;
   onTap?: (region: string, point: [number, number, number]) => void;
   onHover?: (point: [number, number, number] | null) => void;
   hotspots?: TwinHotspot[];
@@ -215,8 +225,10 @@ function Scene({
   side,
   pins,
   pointers = [],
+  devices = [],
   selectedPinId,
   onSelectPin,
+  onSelectDevice,
   onTap,
   onHover,
   hotspots = [],
@@ -328,6 +340,9 @@ function Scene({
       {pointers.map(p => (
         <PointerMarker key={p.id} pointer={p} />
       ))}
+
+      {/* Chart devices as 3D props; body-anchored ones sit out when a personal scan shows. */}
+      <DeviceLayer devices={devices} scan={mode === 'outside'} seated={seatedScan} onSelect={onSelectDevice} />
 
       <Platform />
     </>
@@ -589,12 +604,19 @@ function severityColor(sev: number) {
   return '#0f8a4d';
 }
 
+/** Color for a nursing assessment marker. */
+const ASSESS_HEX: Record<'ok' | 'alarm' | 'off', string> = {
+  ok: '#0f8a4d',
+  alarm: '#dc1f34',
+  off: '#8a8f98',
+};
+
 /** Flat hexagon outline that always faces the camera. */
-function HexRing({ r, width, color, opacity = 1, order }: { r: number; width: number; color: string; opacity?: number; order: number }) {
+function HexRing({ r, width, color, opacity = 1, order, segments = 6 }: { r: number; width: number; color: string; opacity?: number; order: number; segments?: number }) {
   return (
     <Billboard>
-      <mesh renderOrder={order} raycast={noRaycast} rotation={[0, 0, Math.PI / 6]}>
-        <ringGeometry args={[r - width, r, 6]} />
+      <mesh renderOrder={order} raycast={noRaycast} rotation={[0, 0, segments === 4 ? 0 : Math.PI / 6]}>
+        <ringGeometry args={[r - width, r, segments]} />
         <meshBasicMaterial color={color} transparent opacity={opacity} depthTest={false} depthWrite={false} />
       </mesh>
     </Billboard>
@@ -625,7 +647,7 @@ function PulseRing({ color, speed = 0.35 }: { color: string; speed?: number }) {
 
 function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onSelect?: (id: string) => void }) {
   const [hover, setHover] = useState(false);
-  const color = pin.pending ? ACCENT : severityColor(pin.severity);
+  const color = pin.pending ? ACCENT : pin.tone ? ASSESS_HEX[pin.tone] : severityColor(pin.severity);
 
   return (
     <group position={[pin.x, pin.y, pin.z]}>
@@ -641,7 +663,14 @@ function Pin({ pin, selected, onSelect }: { pin: TwinPin; selected: boolean; onS
         <sphereGeometry args={[selected ? 0.014 : 0.011, 20, 12]} />
         <meshBasicMaterial color={color} depthTest={false} depthWrite={false} />
       </mesh>
-      <HexRing r={selected ? 0.032 : 0.026} width={0.004} color={color} opacity={0.9} order={9} />
+      <HexRing
+        r={selected ? 0.032 : 0.026}
+        width={0.004}
+        color={color}
+        opacity={0.9}
+        order={9}
+        segments={pin.diamond ? 4 : 6}
+      />
       {(hover || selected || pin.pending) && (
         <Html center zIndexRange={[4, 0]} distanceFactor={0.85} position={[0, 0.055, 0]} style={{ pointerEvents: 'none' }}>
           <div className="pin-label">{pin.label}</div>

@@ -23,6 +23,12 @@ type Props = {
   disclaimer: string;
   /** Called at send time so the agent always sees the live record. */
   buildContext: () => unknown;
+  /**
+   * Navigation commands ("take me to the health tab") are handled locally instead
+   * of being sent to the model; returns the confirmation line, or null to let the
+   * message through to the agent.
+   */
+  onNavigate?: (text: string) => string | null;
 };
 
 const HISTORY_SENT = 16;
@@ -129,7 +135,15 @@ export function AgentChat(props: Props) {
         ]);
         return id;
       },
-      onUserText: (id, text) => patchTurn(vid(id, 'u'), t => ({ ...t, content: text || '(couldn’t make that out)' })),
+      onUserText: (id, text) => {
+        patchTurn(vid(id, 'u'), t => ({ ...t, content: text || '(couldn’t make that out)' }));
+        const navLine = text ? props.onNavigate?.(text) : null;
+        if (navLine) {
+          // The transcript arrives before the reply streams; answer locally instead.
+          sessionRef.current?.interrupt();
+          patchTurn(vid(id, 'a'), t => ({ ...t, content: navLine }));
+        }
+      },
       onAgentText: (id, chunk) => patchTurn(vid(id, 'a'), t => ({ ...t, content: t.content + chunk })),
       onTurnEnd: id => {
         const mine = (t: Turn) => t.vid === vid(id, 'u') || t.vid === vid(id, 'a');
@@ -163,6 +177,12 @@ export function AgentChat(props: Props) {
   const send = async (text: string) => {
     const question = text.trim();
     if (!question || busy) return;
+    const navLine = props.onNavigate?.(question);
+    if (navLine) {
+      setTurns(cur => [...cur, { role: 'user', content: question }, { role: 'assistant', content: navLine }]);
+      setInput('');
+      return;
+    }
     const history: Turn[] = [...turns, { role: 'user', content: question }];
     setTurns([...history, { role: 'assistant', content: '' }]);
     setInput('');

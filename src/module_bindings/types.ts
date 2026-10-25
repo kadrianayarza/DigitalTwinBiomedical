@@ -24,6 +24,37 @@ export const Alert = __t.object("Alert", {
 });
 export type Alert = __Infer<typeof Alert>;
 
+export const Appointment = __t.object("Appointment", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  title: __t.string(),
+  kind: __t.string(),
+  whenAt: __t.timestamp(),
+  durationMin: __t.u32(),
+  mode: __t.string(),
+  location: __t.string(),
+  notes: __t.string(),
+  status: __t.string(),
+  createdBy: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type Appointment = __Infer<typeof Appointment>;
+
+export const AssistiveDevice = __t.object("AssistiveDevice", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  slug: __t.string(),
+  name: __t.string(),
+  detail: __t.string(),
+  sinceText: __t.string(),
+  createdBy: __t.string(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+  confirmedBy: __t.string(),
+  confirmedAt: __t.timestamp(),
+});
+export type AssistiveDevice = __Infer<typeof AssistiveDevice>;
+
 export const AuditEvent = __t.object("AuditEvent", {
   id: __t.u64(),
   patientId: __t.u64(),
@@ -33,6 +64,96 @@ export const AuditEvent = __t.object("AuditEvent", {
   ts: __t.timestamp(),
 });
 export type AuditEvent = __Infer<typeof AuditEvent>;
+
+export const CareMessage = __t.object("CareMessage", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  author: __t.identity(),
+  authorName: __t.string(),
+  authorRole: __t.string(),
+  body: __t.string(),
+  createdAt: __t.timestamp(),
+  channel: __t.string(),
+});
+export type CareMessage = __Infer<typeof CareMessage>;
+
+export const ExerciseEntry = __t.object("ExerciseEntry", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  status: __t.string(),
+  activity: __t.string(),
+  minutes: __t.u32(),
+  intensity: __t.string(),
+  day: __t.u8(),
+  note: __t.string(),
+  source: __t.string(),
+  createdBy: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type ExerciseEntry = __Infer<typeof ExerciseEntry>;
+
+export const FamilyAccess = __t.object("FamilyAccess", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  memberName: __t.string(),
+  relationship: __t.string(),
+  alertLevel: __t.string(),
+  canViewChart: __t.bool(),
+  status: __t.string(),
+  memberIdentity: __t.option(__t.identity()),
+  createdAt: __t.timestamp(),
+  acceptedAt: __t.option(__t.timestamp()),
+});
+export type FamilyAccess = __Infer<typeof FamilyAccess>;
+
+export const FamilyAlert = __t.object("FamilyAlert", {
+  id: __t.u64(),
+  accessId: __t.u64(),
+  patientId: __t.u64(),
+  alertId: __t.u64(),
+  event: __t.string(),
+  priority: __t.string(),
+  title: __t.string(),
+  body: __t.string(),
+  createdAt: __t.timestamp(),
+  readAt: __t.option(__t.timestamp()),
+});
+export type FamilyAlert = __Infer<typeof FamilyAlert>;
+
+export const FamilyInviteCode = __t.object("FamilyInviteCode", {
+  code: __t.string(),
+  accessId: __t.u64(),
+});
+export type FamilyInviteCode = __Infer<typeof FamilyInviteCode>;
+
+export const FamilyLogin = __t.object("FamilyLogin", {
+  email: __t.string(),
+  memberIdentity: __t.identity(),
+  salt: __t.string(),
+  passwordHash: __t.string(),
+  failedCount: __t.u32(),
+  lockedUntil: __t.option(__t.timestamp()),
+  createdAt: __t.timestamp(),
+});
+export type FamilyLogin = __Infer<typeof FamilyLogin>;
+
+export const FamilyLoginInfo = __t.object("FamilyLoginInfo", {
+  email: __t.string(),
+});
+export type FamilyLoginInfo = __Infer<typeof FamilyLoginInfo>;
+
+export const FamilySigninAttempt = __t.object("FamilySigninAttempt", {
+  identity: __t.identity(),
+  message: __t.string(),
+  at: __t.timestamp(),
+});
+export type FamilySigninAttempt = __Infer<typeof FamilySigninAttempt>;
+
+export const FamilySigninNotice = __t.object("FamilySigninNotice", {
+  message: __t.string(),
+  at: __t.timestamp(),
+});
+export type FamilySigninNotice = __Infer<typeof FamilySigninNotice>;
 
 export const HealthDevice = __t.object("HealthDevice", {
   id: __t.u64(),
@@ -70,6 +191,116 @@ export const HealthSampleInput = __t.object("HealthSampleInput", {
 });
 export type HealthSampleInput = __Infer<typeof HealthSampleInput>;
 
+export const HistoryItem = __t.object("HistoryItem", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  category: __t.string(),
+  title: __t.string(),
+  detail: __t.string(),
+  whenText: __t.string(),
+  slug: __t.string(),
+  createdBy: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type HistoryItem = __Infer<typeof HistoryItem>;
+
+export const LabResult = __t.object("LabResult", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  slug: __t.string(),
+  name: __t.string(),
+  value: __t.f32(),
+  unit: __t.string(),
+  flag: __t.string(),
+  notes: __t.string(),
+  resultedAt: __t.timestamp(),
+  enteredBy: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type LabResult = __Infer<typeof LabResult>;
+
+export const LibImportJob = __t.object("LibImportJob", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  entryId: __t.u64(),
+});
+export type LibImportJob = __Infer<typeof LibImportJob>;
+
+export const LibSectionInput = __t.object("LibSectionInput", {
+  heading: __t.string(),
+  body: __t.string(),
+  patient: __t.bool(),
+});
+export type LibSectionInput = __Infer<typeof LibSectionInput>;
+
+export const LibraryEntry = __t.object("LibraryEntry", {
+  id: __t.u64(),
+  slug: __t.string(),
+  kind: __t.string(),
+  name: __t.string(),
+  aliases: __t.string(),
+  category: __t.string(),
+  summary: __t.string(),
+  patientSummary: __t.string(),
+  unit: __t.string(),
+  refLow: __t.option(__t.f32()),
+  refHigh: __t.option(__t.f32()),
+  criticalLow: __t.option(__t.f32()),
+  criticalHigh: __t.option(__t.f32()),
+  related: __t.string(),
+  sourceName: __t.string(),
+  sourceUrl: __t.string(),
+  curated: __t.bool(),
+  updatedBy: __t.string(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type LibraryEntry = __Infer<typeof LibraryEntry>;
+
+export const LibrarySection = __t.object("LibrarySection", {
+  id: __t.u64(),
+  entryId: __t.u64(),
+  position: __t.u8(),
+  heading: __t.string(),
+  body: __t.string(),
+  patient: __t.bool(),
+});
+export type LibrarySection = __Infer<typeof LibrarySection>;
+
+export const LifestyleEntry = __t.object("LifestyleEntry", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  kind: __t.string(),
+  summary: __t.string(),
+  amount: __t.string(),
+  hours: __t.f32(),
+  whenText: __t.string(),
+  source: __t.string(),
+  createdBy: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type LifestyleEntry = __Infer<typeof LifestyleEntry>;
+
+export const MedDose = __t.object("MedDose", {
+  id: __t.u64(),
+  slotKey: __t.string(),
+  medicationId: __t.u64(),
+  patientId: __t.u64(),
+  scheduledFor: __t.timestamp(),
+  status: __t.string(),
+  glucoseMgDl: __t.f32(),
+  note: __t.string(),
+  loggedAt: __t.option(__t.timestamp()),
+  loggedBy: __t.string(),
+});
+export type MedDose = __Infer<typeof MedDose>;
+
+export const MedTimer = __t.object("MedTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type MedTimer = __Infer<typeof MedTimer>;
+
 export const Medication = __t.object("Medication", {
   id: __t.u64(),
   patientId: __t.u64(),
@@ -77,8 +308,44 @@ export const Medication = __t.object("Medication", {
   dose: __t.string(),
   schedule: __t.string(),
   createdAt: __t.timestamp(),
+  kind: __t.string(),
+  route: __t.string(),
+  instructions: __t.string(),
+  sideEffects: __t.string(),
+  contraindications: __t.string(),
+  scheduleTimes: __t.string(),
+  tzOffsetMin: __t.i32(),
+  remindersOn: __t.bool(),
+  requiresGlucose: __t.bool(),
+  active: __t.bool(),
+  prescribedBy: __t.string(),
+  updatedAt: __t.timestamp(),
 });
 export type Medication = __Infer<typeof Medication>;
+
+export const MentalHealthCheckIn = __t.object("MentalHealthCheckIn", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  kind: __t.string(),
+  score: __t.i32(),
+  band: __t.string(),
+  item9: __t.u8(),
+  sleepHours: __t.f32(),
+  notes: __t.string(),
+  createdBy: __t.string(),
+  source: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type MentalHealthCheckIn = __Infer<typeof MentalHealthCheckIn>;
+
+export const MyFamilyInvites = __t.object("MyFamilyInvites", {});
+export type MyFamilyInvites = __Infer<typeof MyFamilyInvites>;
+
+export const MyFamilyLogin = __t.object("MyFamilyLogin", {});
+export type MyFamilyLogin = __Infer<typeof MyFamilyLogin>;
+
+export const MyFamilySignin = __t.object("MyFamilySignin", {});
+export type MyFamilySignin = __Infer<typeof MyFamilySignin>;
 
 export const Patient = __t.object("Patient", {
   id: __t.u64(),
@@ -91,6 +358,16 @@ export const Patient = __t.object("Patient", {
   createdAt: __t.timestamp(),
 });
 export type Patient = __Infer<typeof Patient>;
+
+export const PatientLayout = __t.object("PatientLayout", {
+  patientId: __t.u64(),
+  tabs: __t.string(),
+  goal: __t.string(),
+  assessed: __t.bool(),
+  updatedBy: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type PatientLayout = __Infer<typeof PatientLayout>;
 
 export const Presence = __t.object("Presence", {
   identity: __t.identity(),
@@ -184,6 +461,19 @@ export const SymptomEntry = __t.object("SymptomEntry", {
 });
 export type SymptomEntry = __Infer<typeof SymptomEntry>;
 
+export const SystemAssessment = __t.object("SystemAssessment", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  system: __t.string(),
+  status: __t.string(),
+  findings: __t.string(),
+  region: __t.string(),
+  assessedBy: __t.string(),
+  assessedAt: __t.timestamp(),
+  createdAt: __t.timestamp(),
+});
+export type SystemAssessment = __Infer<typeof SystemAssessment>;
+
 export const TwinJob = __t.object("TwinJob", {
   scheduledId: __t.u64(),
   scheduledAt: __t.scheduleAt(),
@@ -202,6 +492,13 @@ export const TwinStatus = __t.object("TwinStatus", {
   updatedAt: __t.timestamp(),
 });
 export type TwinStatus = __Infer<typeof TwinStatus>;
+
+export const UserLayout = __t.object("UserLayout", {
+  identity: __t.identity(),
+  tabs: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type UserLayout = __Infer<typeof UserLayout>;
 
 export const UserProfile = __t.object("UserProfile", {
   identity: __t.identity(),
@@ -237,6 +534,43 @@ export const VitalSign = __t.object("VitalSign", {
   spo2: __t.f32(),
   tempC: __t.f32(),
   source: __t.string(),
+  glucoseMgDl: __t.f32(),
 });
 export type VitalSign = __Infer<typeof VitalSign>;
+
+export const VoiceDraft = __t.object("VoiceDraft", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  transcript: __t.string(),
+  status: __t.string(),
+  model: __t.string(),
+  note: __t.string(),
+  createdBy: __t.identity(),
+  createdByName: __t.string(),
+  createdAt: __t.timestamp(),
+  reply: __t.string(),
+});
+export type VoiceDraft = __Infer<typeof VoiceDraft>;
+
+export const VoiceItem = __t.object("VoiceItem", {
+  id: __t.u64(),
+  draftId: __t.u64(),
+  position: __t.u32(),
+  kind: __t.string(),
+  label: __t.string(),
+  target: __t.string(),
+  detail: __t.string(),
+  confidence: __t.string(),
+  decision: __t.string(),
+  decidedByName: __t.string(),
+  decidedAt: __t.option(__t.timestamp()),
+});
+export type VoiceItem = __Infer<typeof VoiceItem>;
+
+export const VoiceJob = __t.object("VoiceJob", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  draftId: __t.u64(),
+});
+export type VoiceJob = __Infer<typeof VoiceJob>;
 

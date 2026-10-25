@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { SpacetimeDBProvider } from 'spacetimedb/react';
 import App from './App.tsx';
 import { DbConnection, ErrorContext } from './module_bindings/index.ts';
-import { currentRole } from './lib/role.ts';
+import { currentRole, tokenKey } from './lib/role.ts';
 import { initTheme } from './lib/theme.ts';
 import '@fontsource-variable/google-sans-flex/standard.css';
 import '@fontsource-variable/google-sans-code';
@@ -15,9 +15,7 @@ initTheme();
 
 const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'ws://127.0.0.1:3100';
 const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'twincare';
-
-// Each role gets its own identity so a patient tab and a nurse tab can run side by side.
-const TOKEN_KEY = `${HOST}/${DB_NAME}/${currentRole() ?? 'guest'}/auth_token`;
+const TOKEN_KEY = tokenKey(currentRole());
 
 const connectionBuilder = DbConnection.builder()
   .withUri(HOST)

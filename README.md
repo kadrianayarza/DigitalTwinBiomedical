@@ -156,6 +156,20 @@ These numbers are modest. Predicting sepsis 6 hours ahead from vitals alone is h
 | Health integrations | Apple Health export (parsed in the browser with fflate), Google Health API for Fitbit and Pixel Watch |
 | Development | Cursor |
 
+### Where the care features live
+
+| Feature | Code |
+|---|---|
+| Tables, reducers, simulated pod, red-flag rules | `spacetimedb/src/index.ts` |
+| Clinical thresholds, triage prompt, Claude tool schema | `spacetimedb/src/clinical.ts` |
+| Claude call (scheduled procedure, key never reaches the browser) | `runSbarJob` in `spacetimedb/src/index.ts` |
+| 3D twin: layers, implant, tap-to-region | `src/twin/` |
+| Photo twin (Meshy image-to-3D, scheduled procedure) | `requestTwin` / `runTwinJob` in `spacetimedb/src/index.ts`, API client in `spacetimedb/src/meshy.ts`, `src/patient/TwinPhotoCard.tsx` |
+| Patient check-in (OPQRST) | `src/patient/` |
+| Nurse dashboard, SBAR approval, impact metrics | `src/nurse/` |
+| Medications, dose schedule, reminders, glucose rules | `spacetimedb/src/medication.ts`, `src/nurse/MedicationPanel.tsx`, `src/patient/MedicationCard.tsx` |
+| Curated medical library, FDA label imports, patient-friendly lab results and history | `spacetimedb/src/library.ts`, `src/library/`, `src/nurse/ChartPanel.tsx`, `src/patient/HealthRecordCard.tsx` |
+
 ## Measuring impact
 
 The nurse console computes its metrics live from the database: open alerts, median time from alert to acknowledgment, and how many patients checked in during the last 24 hours. Every SBAR stores the AI's original draft alongside the approved version, so nurse edit rates can be measured.

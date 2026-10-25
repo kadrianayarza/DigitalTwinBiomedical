@@ -23,6 +23,10 @@ export const REASON_LABEL: Record<string, string> = {
   TACHYPNEA: 'Respiratory rate above 24 breaths/min',
   HYPOTENSION: 'Systolic blood pressure below 90 mmHg',
   HYPERTENSION: 'Systolic blood pressure 180 mmHg or higher',
+  HYPOGLYCEMIA: 'Blood glucose below 70 mg/dL',
+  HYPERGLYCEMIA: 'Blood glucose 300 mg/dL or higher',
+  MISSED_INSULIN: 'Insulin dose missed or skipped',
+  CRITICAL_LAB: 'Critical lab value outside the safe range',
   WEIGHT_GAIN: 'Weight up 2 lb (0.9 kg) in a day or 5 lb (2.3 kg) in a week',
   RESTING_HR_RISE: 'Resting heart rate 10+ bpm above the past week',
   WEARABLE_LOW_SPO2: 'Watch blood oxygen below 90%',
@@ -30,6 +34,12 @@ export const REASON_LABEL: Record<string, string> = {
   GLUCOSE_OUT_OF_RANGE: 'Blood glucose below 70 or above 300 mg/dL',
   ML_RISK_ELEVATED: 'Risk model (advisory): elevated chance of sepsis onset within 6 hours',
   ML_RISK_HIGH: 'Risk model (advisory): high chance of sepsis onset within 6 hours',
+  SELF_HARM_RISK: 'PHQ-9 item 9 positive: thoughts of being better off dead or of self-harm. Contact the patient now.',
+  CRISIS_LANGUAGE: 'Crisis wording in a check-in note. Reach out to the patient now.',
+  SEVERE_DEPRESSION: 'PHQ-9 15 or higher: moderately severe to severe depression',
+  SEVERE_ANXIETY: 'GAD-7 15 or higher: severe anxiety',
+  MOOD_ELEVATION: 'Mood high with little sleep: possible mania or activation',
+  SEVERE_LOW_MOOD: 'Mood logged at the lowest point of the scale',
 };
 
 /** Advisory model alerts never reach emergency and only add to the rule floor. */

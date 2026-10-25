@@ -79,6 +79,7 @@ export function PodVitals({ vitals, detailed, title = 'Twin Pod' }: Props) {
       title={title}
       code={<span className="tag">Simulated data</span>}
       className={`pod ${detailed ? 'pod--detailed' : ''}`}
+      collapsible
     >
       <div className="pod__grid">
         {tiles.map(t => (

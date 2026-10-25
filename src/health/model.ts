@@ -29,7 +29,7 @@ export function healthFor(data: TwinData, patientId: bigint) {
   }
   for (const list of byMetric.values()) list.sort((a, b) => a.at - b.at);
   const devices = data.healthDevices.filter(d => d.patientId === patientId).sort((a, b) => (a.id < b.id ? -1 : 1));
-  const medications = data.medications.filter(m => m.patientId === patientId).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const medications = data.medications.filter(m => m.patientId === patientId && m.active).sort((a, b) => (a.id < b.id ? -1 : 1));
   return { byMetric, devices, medications, get: (m: string) => byMetric.get(m) ?? [] };
 }
 export type PatientHealth = ReturnType<typeof healthFor>;

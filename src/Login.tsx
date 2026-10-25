@@ -125,6 +125,11 @@ export function Login() {
               <span className="choice__title">I'm a medical professional</span>
               <span className="choice__desc">Open the follow-up console</span>
             </button>
+            <button className="choice" onClick={() => goToRole('family')}>
+              <span className="choice__code">Demo 03</span>
+              <span className="choice__title">I'm family</span>
+              <span className="choice__desc">Follow someone's recovery</span>
+            </button>
           </div>
         </section>
       </main>

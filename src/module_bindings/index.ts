@@ -35,47 +35,109 @@ import {
 
 // Import all reducer arg schemas
 import AckAlertReducer from "./ack_alert_reducer";
+import AddLabResultReducer from "./add_lab_result_reducer";
 import AddMedicationReducer from "./add_medication_reducer";
 import ApproveSbarReducer from "./approve_sbar_reducer";
+import BookAppointmentReducer from "./book_appointment_reducer";
+import ConfirmAssistiveDeviceReducer from "./confirm_assistive_device_reducer";
 import CreatePatientReducer from "./create_patient_reducer";
+import DecideVoiceItemReducer from "./decide_voice_item_reducer";
+import DeleteAssistiveDeviceReducer from "./delete_assistive_device_reducer";
+import DeleteExerciseEntryReducer from "./delete_exercise_entry_reducer";
 import DeleteHealthSampleReducer from "./delete_health_sample_reducer";
+import DeleteHistoryItemReducer from "./delete_history_item_reducer";
+import DeleteLabResultReducer from "./delete_lab_result_reducer";
+import DeleteLibraryEntryReducer from "./delete_library_entry_reducer";
+import DeleteLifestyleEntryReducer from "./delete_lifestyle_entry_reducer";
 import DeleteSymptomReducer from "./delete_symptom_reducer";
+import DeleteSystemAssessmentReducer from "./delete_system_assessment_reducer";
+import DismissVoiceDraftReducer from "./dismiss_voice_draft_reducer";
 import EscalateAlertReducer from "./escalate_alert_reducer";
+import ImportFdaLabelReducer from "./import_fda_label_reducer";
 import ImportHealthSamplesReducer from "./import_health_samples_reducer";
+import InviteFamilyMemberReducer from "./invite_family_member_reducer";
+import LoadCuratedLibraryReducer from "./load_curated_library_reducer";
+import LoadExampleAppointmentsReducer from "./load_example_appointments_reducer";
+import LoadExampleAssessmentsReducer from "./load_example_assessments_reducer";
 import LoadExampleCheckInsReducer from "./load_example_check_ins_reducer";
+import LoadExampleDevicesReducer from "./load_example_devices_reducer";
 import LoadExampleHealthReducer from "./load_example_health_reducer";
+import LoadExampleMentalHealthReducer from "./load_example_mental_health_reducer";
+import LogDoseReducer from "./log_dose_reducer";
 import LogHealthSampleReducer from "./log_health_sample_reducer";
+import LogMentalHealthCheckInReducer from "./log_mental_health_check_in_reducer";
 import LogSymptomReducer from "./log_symptom_reducer";
+import MarkFamilyAlertsReadReducer from "./mark_family_alerts_read_reducer";
 import PairDemoDeviceReducer from "./pair_demo_device_reducer";
+import PostCareMessageReducer from "./post_care_message_reducer";
+import RedeemFamilyInviteReducer from "./redeem_family_invite_reducer";
 import RegenerateSbarReducer from "./regenerate_sbar_reducer";
 import RemoveHealthDeviceReducer from "./remove_health_device_reducer";
 import RemoveMedicationReducer from "./remove_medication_reducer";
 import RequestTwinReducer from "./request_twin_reducer";
+import RescheduleAppointmentReducer from "./reschedule_appointment_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
 import ResolveAlertReducer from "./resolve_alert_reducer";
+import RevokeFamilyAccessReducer from "./revoke_family_access_reducer";
+import SaveAssistiveDeviceReducer from "./save_assistive_device_reducer";
+import SaveExerciseEntryReducer from "./save_exercise_entry_reducer";
+import SaveHistoryItemReducer from "./save_history_item_reducer";
+import SaveLibraryEntryReducer from "./save_library_entry_reducer";
+import SaveLifestyleEntryReducer from "./save_lifestyle_entry_reducer";
+import SaveMedicationReducer from "./save_medication_reducer";
+import SavePatientLayoutReducer from "./save_patient_layout_reducer";
+import SaveSystemAssessmentReducer from "./save_system_assessment_reducer";
+import SaveUserLayoutReducer from "./save_user_layout_reducer";
+import SetAppointmentStatusReducer from "./set_appointment_status_reducer";
+import SetFamilyLoginReducer from "./set_family_login_reducer";
 import SetProfileReducer from "./set_profile_reducer";
 import SetScenarioReducer from "./set_scenario_reducer";
 import SetTwinUrlReducer from "./set_twin_url_reducer";
+import SignInFamilyReducer from "./sign_in_family_reducer";
+import StartVoiceDraftReducer from "./start_voice_draft_reducer";
+import StopMedicationReducer from "./stop_medication_reducer";
+import UpdateFamilyAccessReducer from "./update_family_access_reducer";
 import UpdatePointerReducer from "./update_pointer_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
 import AlertRow from "./alert_table";
+import AppointmentRow from "./appointment_table";
+import AssistiveDeviceRow from "./assistive_device_table";
 import AuditEventRow from "./audit_event_table";
+import CareMessageRow from "./care_message_table";
+import ExerciseEntryRow from "./exercise_entry_table";
+import FamilyAccessRow from "./family_access_table";
+import FamilyAlertRow from "./family_alert_table";
 import HealthDeviceRow from "./health_device_table";
 import HealthSampleRow from "./health_sample_table";
+import HistoryItemRow from "./history_item_table";
+import LabResultRow from "./lab_result_table";
+import LibraryEntryRow from "./library_entry_table";
+import LibrarySectionRow from "./library_section_table";
+import LifestyleEntryRow from "./lifestyle_entry_table";
+import MedDoseRow from "./med_dose_table";
 import MedicationRow from "./medication_table";
+import MentalHealthCheckInRow from "./mental_health_check_in_table";
+import MyFamilyInvitesRow from "./my_family_invites_table";
+import MyFamilyLoginRow from "./my_family_login_table";
+import MyFamilySigninRow from "./my_family_signin_table";
 import PatientRow from "./patient_table";
+import PatientLayoutRow from "./patient_layout_table";
 import PresenceRow from "./presence_table";
 import RiskScoreRow from "./risk_score_table";
 import SbarReportRow from "./sbar_report_table";
 import SimStateRow from "./sim_state_table";
 import SymptomEntryRow from "./symptom_entry_table";
+import SystemAssessmentRow from "./system_assessment_table";
 import TwinStatusRow from "./twin_status_table";
+import UserLayoutRow from "./user_layout_table";
 import UserProfileRow from "./user_profile_table";
 import VitalSampleRow from "./vital_sample_table";
 import VitalSignRow from "./vital_sign_table";
+import VoiceDraftRow from "./voice_draft_table";
+import VoiceItemRow from "./voice_item_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -95,6 +157,34 @@ const tablesSchema = __schema({
       { name: 'alert_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, AlertRow),
+  appointment: __table({
+    name: 'appointment',
+    indexes: [
+      { accessor: 'id', name: 'appointment_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'appointment_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'appointment_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AppointmentRow),
+  assistiveDevice: __table({
+    name: 'assistive_device',
+    indexes: [
+      { accessor: 'id', name: 'assistive_device_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'assistive_device_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'assistive_device_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AssistiveDeviceRow),
   auditEvent: __table({
     name: 'audit_event',
     indexes: [
@@ -109,6 +199,65 @@ const tablesSchema = __schema({
       { name: 'audit_event_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, AuditEventRow),
+  careMessage: __table({
+    name: 'care_message',
+    indexes: [
+      { accessor: 'id', name: 'care_message_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'care_message_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'care_message_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, CareMessageRow),
+  exerciseEntry: __table({
+    name: 'exercise_entry',
+    indexes: [
+      { accessor: 'id', name: 'exercise_entry_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'exercise_entry_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'exercise_entry_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ExerciseEntryRow),
+  familyAccess: __table({
+    name: 'family_access',
+    indexes: [
+      { accessor: 'id', name: 'family_access_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'family_access_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'family_access_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, FamilyAccessRow),
+  familyAlert: __table({
+    name: 'family_alert',
+    indexes: [
+      { accessor: 'accessId', name: 'family_alert_access_id_idx_btree', algorithm: 'btree', columns: [
+        'accessId',
+      ] },
+      { accessor: 'id', name: 'family_alert_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'family_alert_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'family_alert_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, FamilyAlertRow),
   healthDevice: __table({
     name: 'health_device',
     indexes: [
@@ -137,6 +286,98 @@ const tablesSchema = __schema({
       { name: 'health_sample_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, HealthSampleRow),
+  historyItem: __table({
+    name: 'history_item',
+    indexes: [
+      { accessor: 'id', name: 'history_item_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'history_item_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'history_item_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, HistoryItemRow),
+  labResult: __table({
+    name: 'lab_result',
+    indexes: [
+      { accessor: 'id', name: 'lab_result_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'lab_result_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'lab_result_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, LabResultRow),
+  libraryEntry: __table({
+    name: 'library_entry',
+    indexes: [
+      { accessor: 'id', name: 'library_entry_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'slug', name: 'library_entry_slug_idx_btree', algorithm: 'btree', columns: [
+        'slug',
+      ] },
+    ],
+    constraints: [
+      { name: 'library_entry_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'library_entry_slug_key', constraint: 'unique', columns: ['slug'] },
+    ],
+  }, LibraryEntryRow),
+  librarySection: __table({
+    name: 'library_section',
+    indexes: [
+      { accessor: 'entryId', name: 'library_section_entry_id_idx_btree', algorithm: 'btree', columns: [
+        'entryId',
+      ] },
+      { accessor: 'id', name: 'library_section_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'library_section_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, LibrarySectionRow),
+  lifestyleEntry: __table({
+    name: 'lifestyle_entry',
+    indexes: [
+      { accessor: 'id', name: 'lifestyle_entry_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'lifestyle_entry_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'lifestyle_entry_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, LifestyleEntryRow),
+  medDose: __table({
+    name: 'med_dose',
+    indexes: [
+      { accessor: 'id', name: 'med_dose_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'medicationId', name: 'med_dose_medication_id_idx_btree', algorithm: 'btree', columns: [
+        'medicationId',
+      ] },
+      { accessor: 'patientId', name: 'med_dose_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+      { accessor: 'slotKey', name: 'med_dose_slot_key_idx_btree', algorithm: 'btree', columns: [
+        'slotKey',
+      ] },
+    ],
+    constraints: [
+      { name: 'med_dose_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'med_dose_slot_key_key', constraint: 'unique', columns: ['slotKey'] },
+    ],
+  }, MedDoseRow),
   medication: __table({
     name: 'medication',
     indexes: [
@@ -151,6 +392,20 @@ const tablesSchema = __schema({
       { name: 'medication_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, MedicationRow),
+  mentalHealthCheckIn: __table({
+    name: 'mental_health_check_in',
+    indexes: [
+      { accessor: 'id', name: 'mental_health_check_in_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'mental_health_check_in_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'mental_health_check_in_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, MentalHealthCheckInRow),
   patient: __table({
     name: 'patient',
     indexes: [
@@ -162,6 +417,17 @@ const tablesSchema = __schema({
       { name: 'patient_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, PatientRow),
+  patientLayout: __table({
+    name: 'patient_layout',
+    indexes: [
+      { accessor: 'patientId', name: 'patient_layout_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'patient_layout_patient_id_key', constraint: 'unique', columns: ['patientId'] },
+    ],
+  }, PatientLayoutRow),
   presence: __table({
     name: 'presence',
     indexes: [
@@ -227,6 +493,20 @@ const tablesSchema = __schema({
       { name: 'symptom_entry_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, SymptomEntryRow),
+  systemAssessment: __table({
+    name: 'system_assessment',
+    indexes: [
+      { accessor: 'id', name: 'system_assessment_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'system_assessment_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'system_assessment_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, SystemAssessmentRow),
   twinStatus: __table({
     name: 'twin_status',
     indexes: [
@@ -238,6 +518,17 @@ const tablesSchema = __schema({
       { name: 'twin_status_patient_id_key', constraint: 'unique', columns: ['patientId'] },
     ],
   }, TwinStatusRow),
+  userLayout: __table({
+    name: 'user_layout',
+    indexes: [
+      { accessor: 'identity', name: 'user_layout_identity_idx_btree', algorithm: 'btree', columns: [
+        'identity',
+      ] },
+    ],
+    constraints: [
+      { name: 'user_layout_identity_key', constraint: 'unique', columns: ['identity'] },
+    ],
+  }, UserLayoutRow),
   userProfile: __table({
     name: 'user_profile',
     indexes: [
@@ -277,32 +568,122 @@ const tablesSchema = __schema({
       { name: 'vital_sign_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, VitalSignRow),
+  voiceDraft: __table({
+    name: 'voice_draft',
+    indexes: [
+      { accessor: 'id', name: 'voice_draft_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'voice_draft_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'voice_draft_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, VoiceDraftRow),
+  voiceItem: __table({
+    name: 'voice_item',
+    indexes: [
+      { accessor: 'draftId', name: 'voice_item_draft_id_idx_btree', algorithm: 'btree', columns: [
+        'draftId',
+      ] },
+      { accessor: 'id', name: 'voice_item_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'voice_item_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, VoiceItemRow),
+  myFamilyInvites: __table({
+    name: 'my_family_invites',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyFamilyInvitesRow),
+  myFamilyLogin: __table({
+    name: 'my_family_login',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyFamilyLoginRow),
+  myFamilySignin: __table({
+    name: 'my_family_signin',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyFamilySigninRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("ack_alert", AckAlertReducer),
+  __reducerSchema("add_lab_result", AddLabResultReducer),
   __reducerSchema("add_medication", AddMedicationReducer),
   __reducerSchema("approve_sbar", ApproveSbarReducer),
+  __reducerSchema("book_appointment", BookAppointmentReducer),
+  __reducerSchema("confirm_assistive_device", ConfirmAssistiveDeviceReducer),
   __reducerSchema("create_patient", CreatePatientReducer),
+  __reducerSchema("decide_voice_item", DecideVoiceItemReducer),
+  __reducerSchema("delete_assistive_device", DeleteAssistiveDeviceReducer),
+  __reducerSchema("delete_exercise_entry", DeleteExerciseEntryReducer),
   __reducerSchema("delete_health_sample", DeleteHealthSampleReducer),
+  __reducerSchema("delete_history_item", DeleteHistoryItemReducer),
+  __reducerSchema("delete_lab_result", DeleteLabResultReducer),
+  __reducerSchema("delete_library_entry", DeleteLibraryEntryReducer),
+  __reducerSchema("delete_lifestyle_entry", DeleteLifestyleEntryReducer),
   __reducerSchema("delete_symptom", DeleteSymptomReducer),
+  __reducerSchema("delete_system_assessment", DeleteSystemAssessmentReducer),
+  __reducerSchema("dismiss_voice_draft", DismissVoiceDraftReducer),
   __reducerSchema("escalate_alert", EscalateAlertReducer),
+  __reducerSchema("import_fda_label", ImportFdaLabelReducer),
   __reducerSchema("import_health_samples", ImportHealthSamplesReducer),
+  __reducerSchema("invite_family_member", InviteFamilyMemberReducer),
+  __reducerSchema("load_curated_library", LoadCuratedLibraryReducer),
+  __reducerSchema("load_example_appointments", LoadExampleAppointmentsReducer),
+  __reducerSchema("load_example_assessments", LoadExampleAssessmentsReducer),
   __reducerSchema("load_example_check_ins", LoadExampleCheckInsReducer),
+  __reducerSchema("load_example_devices", LoadExampleDevicesReducer),
   __reducerSchema("load_example_health", LoadExampleHealthReducer),
+  __reducerSchema("load_example_mental_health", LoadExampleMentalHealthReducer),
+  __reducerSchema("log_dose", LogDoseReducer),
   __reducerSchema("log_health_sample", LogHealthSampleReducer),
+  __reducerSchema("log_mental_health_check_in", LogMentalHealthCheckInReducer),
   __reducerSchema("log_symptom", LogSymptomReducer),
+  __reducerSchema("mark_family_alerts_read", MarkFamilyAlertsReadReducer),
   __reducerSchema("pair_demo_device", PairDemoDeviceReducer),
+  __reducerSchema("post_care_message", PostCareMessageReducer),
+  __reducerSchema("redeem_family_invite", RedeemFamilyInviteReducer),
   __reducerSchema("regenerate_sbar", RegenerateSbarReducer),
   __reducerSchema("remove_health_device", RemoveHealthDeviceReducer),
   __reducerSchema("remove_medication", RemoveMedicationReducer),
   __reducerSchema("request_twin", RequestTwinReducer),
+  __reducerSchema("reschedule_appointment", RescheduleAppointmentReducer),
   __reducerSchema("reset_demo", ResetDemoReducer),
   __reducerSchema("resolve_alert", ResolveAlertReducer),
+  __reducerSchema("revoke_family_access", RevokeFamilyAccessReducer),
+  __reducerSchema("save_assistive_device", SaveAssistiveDeviceReducer),
+  __reducerSchema("save_exercise_entry", SaveExerciseEntryReducer),
+  __reducerSchema("save_history_item", SaveHistoryItemReducer),
+  __reducerSchema("save_library_entry", SaveLibraryEntryReducer),
+  __reducerSchema("save_lifestyle_entry", SaveLifestyleEntryReducer),
+  __reducerSchema("save_medication", SaveMedicationReducer),
+  __reducerSchema("save_patient_layout", SavePatientLayoutReducer),
+  __reducerSchema("save_system_assessment", SaveSystemAssessmentReducer),
+  __reducerSchema("save_user_layout", SaveUserLayoutReducer),
+  __reducerSchema("set_appointment_status", SetAppointmentStatusReducer),
+  __reducerSchema("set_family_login", SetFamilyLoginReducer),
   __reducerSchema("set_profile", SetProfileReducer),
   __reducerSchema("set_scenario", SetScenarioReducer),
   __reducerSchema("set_twin_url", SetTwinUrlReducer),
+  __reducerSchema("sign_in_family", SignInFamilyReducer),
+  __reducerSchema("start_voice_draft", StartVoiceDraftReducer),
+  __reducerSchema("stop_medication", StopMedicationReducer),
+  __reducerSchema("update_family_access", UpdateFamilyAccessReducer),
   __reducerSchema("update_pointer", UpdatePointerReducer),
 );
 

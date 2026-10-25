@@ -2,6 +2,12 @@ import type { Timestamp } from 'spacetimedb';
 
 export const tsMs = (t: Timestamp) => Number(t.microsSinceUnixEpoch / 1000n);
 
+/** Hide binary float noise from SpacetimeDB's f32 lab-result values. */
+export function formatLabValue(value: number) {
+  if (!Number.isFinite(value)) return String(value);
+  return String(Number(value.toPrecision(7)));
+}
+
 export function daysSince(t: Timestamp, now = Date.now()) {
   return Math.max(0, Math.floor((now - tsMs(t)) / 86_400_000));
 }
@@ -65,6 +71,10 @@ export const REASON_LABEL: Record<string, string> = {
   TACHYPNEA: 'Respiratory rate > 24',
   HYPOTENSION: 'Systolic BP < 90',
   HYPERTENSION: 'Systolic BP ≥ 180',
+  HYPOGLYCEMIA: 'Glucose < 70 mg/dL',
+  HYPERGLYCEMIA: 'Glucose ≥ 300 mg/dL',
+  MISSED_INSULIN: 'Insulin dose missed or skipped',
+  CRITICAL_LAB: 'Critical lab value',
   WEIGHT_GAIN: 'Weight up 2 lb (0.9 kg) in a day or 5 lb (2.3 kg) in a week',
   RESTING_HR_RISE: 'Resting heart rate 10+ bpm above the past week',
   WEARABLE_LOW_SPO2: 'Watch blood oxygen below 90%',
@@ -72,6 +82,12 @@ export const REASON_LABEL: Record<string, string> = {
   GLUCOSE_OUT_OF_RANGE: 'Blood glucose below 70 or above 300 mg/dL',
   ML_RISK_ELEVATED: 'Risk model: elevated sepsis risk (advisory)',
   ML_RISK_HIGH: 'Risk model: high sepsis risk (advisory)',
+  SELF_HARM_RISK: 'PHQ-9 item 9 positive: thoughts of self-harm. Contact now.',
+  CRISIS_LANGUAGE: 'Crisis wording in a check-in note. Reach out now.',
+  SEVERE_DEPRESSION: 'PHQ-9 15 or higher: moderately severe to severe depression',
+  SEVERE_ANXIETY: 'GAD-7 15 or higher: severe anxiety',
+  MOOD_ELEVATION: 'Mood high with little sleep: possible mania or activation',
+  SEVERE_LOW_MOOD: 'Mood logged at the lowest point of the scale',
 };
 
 export const SCENARIO_LABEL: Record<string, string> = {

@@ -21,4 +21,5 @@ export default __t.row({
   spo2: __t.f32().name("spo_2"),
   tempC: __t.f32().name("temp_c"),
   source: __t.string(),
+  glucoseMgDl: __t.f32().name("glucose_mg_dl"),
 });

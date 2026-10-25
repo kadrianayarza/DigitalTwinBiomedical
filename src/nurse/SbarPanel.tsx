@@ -3,6 +3,7 @@ import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Alert, SbarReport } from '../module_bindings/types';
 import { PRIORITY_LABEL, REASON_LABEL, clock, timeAgo } from '../lib/format';
+import { CRISIS_LINES, isMhCrisisAlert } from '../lib/mentalHealth';
 
 type Props = { alert: Alert; report: SbarReport | undefined };
 
@@ -91,6 +92,23 @@ export function SbarPanel({ alert, report }: Props) {
         ))}
       </ul>
 
+      {isMhCrisisAlert(alert.reasonCodes) && (
+        <div className="alert-card__crisis" role="alert">
+          <div className="alert-card__crisis-title">Mental-health crisis: act now</div>
+          <p className="small">
+            Contact the patient directly, assess safety, and share these resources:
+          </p>
+          <ul className="alert-card__crisis-lines">
+            {CRISIS_LINES.map(line => (
+              <li key={line.label}>
+                <strong>{line.label}</strong>
+                <span className="muted"> — {line.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="alert-card__actions">
         <button className="btn" disabled={alert.status !== 'open'} onClick={() => void ack({ alertId: alert.id })}>
           Acknowledge
@@ -111,8 +129,8 @@ export function SbarPanel({ alert, report }: Props) {
         </button>
       </div>
 
-      <div className="sbar">
-        <div className="sbar__head">
+      <details className="sbar" open>
+        <summary className="sbar__head">
           <div className="panel__title">SBAR handoff</div>
           {pending ? (
             <span className="tag tag--pulse">Drafting…</span>
@@ -125,7 +143,8 @@ export function SbarPanel({ alert, report }: Props) {
               {isAi ? 'AI draft' : 'Template draft'} · needs approval
             </span>
           )}
-        </div>
+          <span className="panel__chevron" aria-hidden />
+        </summary>
 
         {FIELDS.map(([key, label]) => (
           <label key={key} className="sbar__field">
@@ -188,7 +207,7 @@ export function SbarPanel({ alert, report }: Props) {
             </button>
           </div>
         )}
-      </div>
+      </details>
     </div>
   );
 }
