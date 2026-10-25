@@ -17,7 +17,6 @@
   "dependencies": {
     "@fontsource-variable/google-sans-code": "^5.3.2",
     "@fontsource-variable/google-sans-flex": "^5.3.2",
-    "@fontsource/poiret-one": "^5.3.0",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "react": "^18.3.1",

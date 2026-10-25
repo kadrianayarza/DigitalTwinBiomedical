@@ -44,7 +44,7 @@
   color-scheme: light;
 }
 
-/* ---------- professional theme: muted monochrome, Peignot-style headings, serif text ---------- */
+/* ---------- professional theme: muted, near-monochrome palette and lighter titles ---------- */
 :root[data-theme='professional'] {
   --bg0: #fbfbfa;
   --bg1: #efefed;
@@ -75,36 +75,8 @@
   --vital-spo2: #5c6f7a;
   --vital-temp: #8a7148;
 
-  --font-display: 'Peignot', 'Peignot LT Std', 'Peignot Std', 'Poiret One', 'Google Sans Flex Variable', sans-serif;
-  --display-weight: 400;
+  --display-weight: 600;
   --blur: blur(16px);
-}
-:root[data-theme='professional'] :is(
-    .kicker,
-    .panel__title,
-    .brand__sub,
-    .field__label,
-    .hint,
-    .tile__label,
-    .impact__label,
-    .census__prio,
-    .sbar__label,
-    .severity__word,
-    .triad__val,
-    .topbar__who strong,
-    .demo summary,
-    h1,
-    h2,
-    h3
-  ) {
-  font-family: var(--font-display);
-  font-weight: 400;
-}
-:root[data-theme='professional'] :is(.titlecard, .brand__name, .titlecard--name, .sheet__title, .choice__title) {
-  letter-spacing: 0.02em;
-}
-:root[data-theme='professional'] :is(.kicker, .panel__title, .tile__label, .field__label, .sbar__label) {
-  letter-spacing: 0.16em;
 }
 * {
   box-sizing: border-box;

@@ -7,7 +7,6 @@ import { currentRole } from './lib/role.ts';
 import { initTheme } from './lib/theme.ts';
 import '@fontsource-variable/google-sans-flex/standard.css';
 import '@fontsource-variable/google-sans-code';
-import '@fontsource/poiret-one';
 import './styles.css';
 
 initTheme();
