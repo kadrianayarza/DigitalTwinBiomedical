@@ -17,9 +17,11 @@ spacetime server add twinlocal --url http://127.0.0.1:3100 --no-fingerprint   # 
 npm install && (cd spacetimedb && npm install)
 spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
 
-# Optional: real Claude drafts and photo-to-3D twins via Meshy.
+# Optional: real Claude drafts, DeepSeek (Bitdeer) SBAR uncertainties, and photo-to-3D twins via Meshy.
 # Supply these as server-side shell variables, never VITE_* variables.
-ANTHROPIC_API_KEY=sk-ant-... MESHY_API_KEY=... spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
+ANTHROPIC_API_KEY=sk-ant-... BITDEER_API_KEY=... MESHY_API_KEY=... spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
+
+# Optional: the patient and nurse health agents read BITDEER_API_KEY from .env.local (dev server only).
 
 # 3. Client
 npm run dev
@@ -38,13 +40,14 @@ After changing tables or reducers: `npm run spacetime:publish:local && npm run s
 |---|---|
 | Tables, reducers, simulated pod, red-flag rules | `spacetimedb/src/index.ts` |
 | Clinical thresholds, triage prompt, Claude tool schema | `spacetimedb/src/clinical.ts` |
-| Claude call (scheduled procedure, key never reaches the browser) | `runSbarJob` in `spacetimedb/src/index.ts` |
+| Claude SBAR draft, then a DeepSeek review that lists its uncertainties (scheduled procedure, keys never reach the browser) | `runSbarJob` in `spacetimedb/src/index.ts` |
+| Patient and nurse health agents (streamed DeepSeek via Bitdeer, separate system prompts) | `agentCore.ts`, `agentProxy.ts`, `src/agent/` |
 | 3D twin: layers, implant, tap-to-region | `src/twin/` |
 | Photo twin (Meshy image-to-3D, scheduled procedure) | `requestTwin` / `runTwinJob` in `spacetimedb/src/index.ts`, API client in `spacetimedb/src/meshy.ts`, `src/patient/TwinPhotoCard.tsx` |
 | Patient check-in (OPQRST) | `src/patient/` |
 | Nurse dashboard, SBAR approval, impact metrics | `src/nurse/` |
 
-Safety model: fixed rules run first and set a priority floor; Claude can raise priority but never lower it and never sets "emergency"; every AI draft needs nurse approval; patients never see AI output.
+Safety model: fixed rules run first and set a priority floor; Claude can raise priority but never lower it and never sets "emergency"; every AI draft needs nurse approval; patients never see SBAR drafts or triage output. The patient health agent only sees that patient's own record, does not diagnose, and points to 911 for red flags.
 
 ## Meshy photo twins
 

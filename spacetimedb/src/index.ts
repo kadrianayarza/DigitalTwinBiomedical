@@ -9,11 +9,15 @@ import {
 import { ScheduleAt, TimeDuration, Timestamp, type Identity } from 'spacetimedb';
 import { MeshyError, pollMeshyTask, submitMeshyTask, type MeshyFetch } from './meshy';
 import {
+  BITDEER_CHAT_URL,
+  DEFAULT_UNCERTAINTY_MODEL,
   REASON_LABEL,
   SCENARIOS,
   TRIAGE_SYSTEM_PROMPT,
   TRIAGE_TOOL,
+  parseUncertainties,
   priorityRank,
+  uncertaintyRequestBody,
   regionText,
   simulateVitals,
   symptomRules,
@@ -253,6 +257,8 @@ const spacetimedb = schema(
       CLAUDE_MODEL: t.option(t.string()),
       MESHY_API_KEY: t.option(t.string()),
       MESHY_MODEL: t.option(t.string()),
+      BITDEER_API_KEY: t.option(t.string()),
+      BITDEER_MODEL: t.option(t.string()),
     },
   }
 );
@@ -938,7 +944,7 @@ function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
         reasons: codes.map(c => REASON_LABEL[c] ?? c),
       },
       recent_symptoms_newest_first: symptoms,
-      pod_vitals_last_2_minutes: {
+      pod_vitals_last_5_minutes: {
         note: 'Simulated Twin Pod data for the prototype',
         heart_rate_bpm: stat(v => v.hr),
         systolic_bp_mmhg: stat(v => v.systolic),
@@ -1031,6 +1037,30 @@ export const runSbarJob = spacetimedb.procedure(
           uncertainties: [`Claude call failed (${String(e).slice(0, 120)}); showing template draft.`],
         };
         status = 'error';
+      }
+    }
+
+    // A second model (DeepSeek on Bitdeer) reviews the draft and lists its uncertainties.
+    const bitdeerKey = ctx.env.BITDEER_API_KEY?.trim();
+    if (bitdeerKey) {
+      try {
+        const res = ctx.http.fetch(BITDEER_CHAT_URL, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${bitdeerKey}`, 'content-type': 'application/json' },
+          body: JSON.stringify(
+            uncertaintyRequestBody(ctx.env.BITDEER_MODEL || DEFAULT_UNCERTAINTY_MODEL, input.payload, result)
+          ),
+          timeout: TimeDuration.fromMillis(30_000),
+        });
+        const text = res.text();
+        if (res.status !== 200) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+        const body = JSON.parse(text) as { choices?: Array<{ message?: { content?: string } }> };
+        const list = parseUncertainties(body.choices?.[0]?.message?.content ?? '');
+        if (!list) throw new Error('No uncertainties in the reply');
+        // Keep the note that the Claude call failed; the template's "not called" note is replaced.
+        result = { ...result, uncertainties: status === 'error' ? [...result.uncertainties, ...list] : list };
+      } catch (e) {
+        console.error(`Uncertainty review failed: ${String(e)}`);
       }
     }
 

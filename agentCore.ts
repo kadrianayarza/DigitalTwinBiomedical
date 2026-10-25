@@ -77,7 +77,8 @@ export function buildUpstreamBody(req: AgentRequest, model: string) {
   return {
     model,
     stream: true,
-    max_tokens: 900,
+    // Includes the model's hidden reasoning, which alone can pass 1000 tokens.
+    max_tokens: 2500,
     temperature: 0.4,
     messages: [
       { role: 'system', content: SYSTEM_PROMPTS[req.audience] },
