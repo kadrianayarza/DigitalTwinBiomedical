@@ -2018,13 +2018,13 @@ textarea:disabled {
     min-height: 100%;
   }
   .nurse__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .detail > .detail__body {
     flex: none;
   }
   .detail__body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
   }
   .detail__twin {
@@ -2043,11 +2043,36 @@ textarea:disabled {
   }
 }
 @media (max-width: 640px) {
-  .topbar__who .mono {
+  .topbar__who .mono,
+  .brand__sub {
     display: none;
+  }
+  .topbar {
+    gap: 8px;
+    padding: 8px 10px;
+    min-height: 50px;
+  }
+  .topbar .brand {
+    flex: none;
+    gap: 7px;
+  }
+  .topbar .hexmark {
+    width: 22px;
+    height: 22px;
   }
   .brand__name {
     font-size: 21px;
+  }
+  .topbar .brand__name {
+    font-size: 15px;
+  }
+  .topbar__who {
+    gap: 6px;
+  }
+  .topbar__who strong {
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .row {
     grid-template-columns: 1fr;
@@ -2342,5 +2367,58 @@ textarea:disabled {
   .agent__typing i {
     animation: none;
     opacity: 0.6;
+  }
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 640px) {
+  /* iOS zooms the page when a focused field's text is under 16px. */
+  input,
+  textarea,
+  select,
+  .agent__input {
+    font-size: 16px;
+  }
+  .sheet-backdrop {
+    place-items: end center;
+    padding: 0;
+  }
+  .sheet {
+    max-height: calc(100dvh - 24px);
+    border-radius: 16px 16px 0 0;
+  }
+  .patient__stage {
+    height: 62dvh;
+    min-height: 380px;
+  }
+  .detail__twin {
+    height: 56dvh;
+    min-height: 340px;
+  }
+  .census__row {
+    min-width: 200px;
+  }
+  .pod--detailed .pod__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pod--detailed .tile--wide {
+    grid-column: span 2;
+  }
+  .landing__twin {
+    height: 52dvh;
+    min-height: 300px;
+  }
+  .agent {
+    right: 12px;
+    bottom: 12px;
+  }
+  .agent__panel {
+    width: calc(100vw - 24px);
+    height: min(640px, calc(100dvh - 96px));
+  }
+}
+@media (max-width: 380px) {
+  .topbar .brand__name {
+    font-size: 13px;
   }
 }
