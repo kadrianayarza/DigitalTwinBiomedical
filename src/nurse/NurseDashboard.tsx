@@ -324,7 +324,7 @@ function PatientDetail({
           <button
             className="btn btn--ghost"
             onClick={() => {
-              if (confirm('Clear all check-ins, alerts, reports, and vitals?')) void resetDemo();
+              if (confirm('Clear all check-ins, alerts, reports, vitals and health data, then restore the example history?')) void resetDemo();
             }}
           >
             Reset data

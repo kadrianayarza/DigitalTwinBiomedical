@@ -2,7 +2,7 @@
 
 **A live 3D twin of every patient recovering at home, shared in real time between the patient and their nurse.**
 
-Patients point to where it hurts on their own body instead of filling out forms. A simulated wearable streams their vitals. Fixed safety rules watch every reading, AI drafts the clinical handoff, and the nurse sees it all on the same twin, at the same moment, with nothing sent to a doctor until a human approves it.
+Patients point to where it hurts on their own body instead of filling out forms. A simulated wearable streams their vitals, and their Apple Watch, Fitbit, scale and blood pressure cuff feed the same record. They can ask their health agent questions by typing or out loud. Fixed safety rules watch every reading, AI drafts the clinical handoff, and the nurse sees it all on the same twin, at the same moment, with nothing sent to a doctor until a human approves it.
 
 Built at Cal Hacks 13.0.
 
@@ -24,7 +24,8 @@ Care breaks down between visits. Patients now go home a day after a knee replace
 - **Live vitals from the Twin Pod.** Heart rate, blood pressure, respiratory rate, SpO₂ and temperature stream onto the dashboard and onto the twin itself.
 - **Their health record, Apple Health style.** A Health app inside the twin has activity rings (Move, Exercise, and Stand, or Roll for wheelchair users), pinned metrics and highlights. It also covers every Apple Health category: activity, body measurements, heart, respiratory, vitals, sleep stages, mobility, nutrition, mindfulness, cycle tracking and symptoms. Each metric has day, week, month and six-month charts. Patients can log blood pressure, weight, glucose, mood, a period or a workout, and tick off each medication dose.
 - **Their own devices.** Patients can import an Apple Health export (`export.zip` from the iPhone Health app). It's read in the browser, covering Apple Watch, iPhone, scale, cuff and glucose monitor data, and only daily or hourly summaries are uploaded. Fitbit and Pixel Watch connect through the Google Health API. Labelled demo devices can be paired for the hackathon demo.
-- **A health agent that knows them.** Patients can ask "How am I doing today?" or "What does this number mean?" and get answers grounded in their own twin and readings. It doesn't diagnose, and it points to 911 for red flags. Patients can also just talk to it: hands-free voice turns, with the transcript kept in the same chat.
+- **A health agent that knows them.** Patients can ask "How am I doing today?" or "What does this number mean?" and get answers grounded in their own twin and readings. It doesn't diagnose, and it points to 911 for red flags.
+- **Or just talk to it.** Tap the mic and speak. There's no button to hold: the agent notices when you pause, starts answering out loud about two seconds later, and stops if you talk over it. Both sides of the conversation are written into the chat. This helps patients who are post-op, iced and elevated, or have their hands full.
 - **Clear status, never raw AI output.** Patients see "Your care team has been notified," then "Marcus has reviewed your check-in." Chest pain or sudden shortness of breath shows **Call 911 now** instantly.
 
 ### For the nurse
@@ -32,6 +33,7 @@ Care breaks down between visits. Patients now go home a day after a knee replace
 - **The same live twin, with pins.** Check-ins appear on the nurse's twin the instant the patient sends them, next to the patient's own words. The nurse's pointer also shows up on the patient's twin, so they can talk about the same spot.
 - **Home and wearable data next to the pod.** A tab beside the Twin Pod vitals shows the condition-specific trends a nurse watches: daily weight and sodium for heart failure, glucose for diabetic wounds, SpO₂ and respiratory rate for COPD, and steps or pushes for mobility. It also shows missed medication doses and wearable flags. The patient's full health record is one click away.
 - **An SBAR handoff already drafted.** When a rule fires, the AI drafts the Situation, Background, Assessment and Recommendation. A second model lists what that draft is uncertain about and what to ask the patient. The nurse edits, approves, escalates or resolves it.
+- **A clinical agent, by text or voice.** It sees the census and the open chart, and helps prioritize patients, interpret trends, tighten SBAR wording and suggest questions to ask.
 - **A full audit trail.** Every check-in, rule, AI draft and nurse action is timestamped and read-only.
 
 ## Safety by design
@@ -43,7 +45,8 @@ AI helps the nurse, but it never makes the call.
 3. **Every AI draft needs a nurse's approval.** Drafts are labeled "needs approval," and edits are recorded.
 4. **A second model checks the first.** An independent DeepSeek review lists the draft's uncertainties: missing data, conflicting signals, simulated sensor data. It sees the draft with the patient's name removed.
 5. **Patients never see triage output.** They see only status updates and what their nurse approves.
-6. **Least-privilege context.** The patient's agent sees only that patient's record. API keys stay on the server and never reach a browser.
+6. **Least-privilege context.** The patient's agent, typed or spoken, sees only that patient's record. API keys and OAuth tokens stay on the server and never reach a browser.
+7. **Voice follows the same rules.** The voice agent gets the text agent's safety prompt unchanged, plus rules for speaking aloud, so an emergency instruction is still the first thing it says.
 
 ## Architecture
 
@@ -51,8 +54,8 @@ AI helps the nurse, but it never makes the call.
 flowchart TB
   subgraph Browsers["Browsers"]
     direction LR
-    P["Patient view<br/>3D twin, tap-to-check-in, vitals"]
-    N["Nurse console<br/>census, alerts, SBAR, audit"]
+    P["Patient view<br/>3D twin, tap-to-check-in,<br/>vitals, Health app, voice"]
+    N["Nurse console<br/>census, alerts, SBAR,<br/>home data, audit"]
   end
 
   subgraph STDB["SpacetimeDB module on Maincloud"]
@@ -76,6 +79,7 @@ flowchart TB
   subgraph Server["App server"]
     direction LR
     AG["Health agent endpoint<br/>streams replies"]
+    VA["Voice endpoint<br/>speech in, speech out"]
     TP["Twin asset proxy"]
     GH["Google Health OAuth<br/>and sync"]
   end
@@ -84,17 +88,19 @@ flowchart TB
     direction LR
     CL["Claude<br/>SBAR draft and priority"]
     DS["DeepSeek on Bitdeer<br/>uncertainty review, agent chat"]
+    OR["gpt-audio on OpenRouter<br/>voice replies, transcripts"]
     MY["Meshy<br/>photo to 3D model"]
     GA["Google Health API<br/>Fitbit, Pixel Watch"]
   end
 
   Browsers -- "reducer calls" --> R
   T -. "live subscriptions" .-> Browsers
-  Browsers -- "agent chat, scan downloads" --> Server
+  Browsers -- "agent chat, voice,<br/>scan downloads, health sync" --> Server
   SB --> CL
   SB --> DS
   TW <--> MY
   AG --> DS
+  VA --> OR
   TP --> MY
   GH --> GA
 ```
@@ -139,7 +145,8 @@ A pilot would follow about 20 patients at one orthopedic practice for six weeks,
 
 - **Real sensors.** The Twin Pod is designed (an nRF52840 with an IMU, a skin temperature sensor and a PPG sensor, worn as a knee patch or bracelet) but simulated today.
 - **Native HealthKit and Health Connect sync** through a companion iOS and Android app, so data arrives continuously instead of from an export.
-- **Voice check-ins** for patients who can't easily tap: post-op, iced, elevated.
+- **Voice check-ins.** Let the voice agent log a symptom on the twin ("my left calf is tight and warm") as a check-in the nurse can act on, not just answer questions.
+- **Streaming voice** over a realtime connection, so replies can start while the patient is still finishing a sentence.
 - **Validated thresholds** reviewed by clinicians, and a triage evaluation set labeled by nurses.
 - **EHR integration** so approved SBARs go straight into the chart.
 
@@ -161,9 +168,21 @@ spacetime publish twincare --server twinlocal --module-path spacetimedb --yes   
 npm run dev
 ```
 
-Open `/?role=patient` and `/?role=nurse` in two windows. In the nurse console, **Demo controls** switch a patient's simulated pod to a blood clot, infection or fluid overload pattern. The app works without any API keys: SBARs fall back to a template, and the twin uses the anatomy view. For AI drafts and photo twins, pass `ANTHROPIC_API_KEY`, `BITDEER_API_KEY` and `MESHY_API_KEY` as shell variables when publishing (never as `VITE_*` variables). The health agents read `BITDEER_API_KEY` from `.env.local`. Voice chat reads `OPENROUTER_API_KEY`; without it, the mic button is hidden. `OPENROUTER_VOICE` picks the voice (default `coral`).
+Open `/?role=patient` and `/?role=nurse` in two windows. In the nurse console, **Controls** switch a patient's simulated pod to a blood clot, infection or fluid overload pattern. **Reset data** there restores the example check-ins and regenerates each patient's four weeks of home and wearable history, ending at the current time. Run it before a demo so the data is current.
 
-Every demo patient comes with four weeks of home and wearable history. To connect a real Fitbit or Pixel Watch, create an OAuth client in Google Cloud with the Google Health API enabled. Then add `GOOGLE_HEALTH_CLIENT_ID`, `GOOGLE_HEALTH_CLIENT_SECRET` and `GOOGLE_HEALTH_REDIRECT_URI` (for example `http://localhost:5173/api/health/google/callback`) to `.env.local`. Without them, the Sources page offers demo devices instead. To try an Apple Health import, open Health, go to Sources, and choose the `export.zip` from the iPhone Health app (profile picture, then Export All Health Data).
+The app works without any API keys: SBARs fall back to a template, the twin uses the anatomy view, the text agent replies that it isn't set up yet, the mic button stays hidden, and Sources offers demo devices. Each key turns on one feature. Keys are never `VITE_*` variables, so they stay out of the browser bundle.
+
+| Variable | Where | Turns on |
+|---|---|---|
+| `ANTHROPIC_API_KEY`, `BITDEER_API_KEY` | shell, when publishing the module | AI SBAR drafts and their review |
+| `MESHY_API_KEY` | shell, when publishing the module | Photo-to-3D twins |
+| `BITDEER_API_KEY` | `.env.local` | Text chat with the health agents |
+| `OPENROUTER_API_KEY` | `.env.local` | Voice chat (optional `OPENROUTER_VOICE`, default `coral`) |
+| `GOOGLE_HEALTH_CLIENT_ID`, `GOOGLE_HEALTH_CLIENT_SECRET`, `GOOGLE_HEALTH_REDIRECT_URI` | `.env.local` | Fitbit and Pixel Watch sync |
+
+For Google Health, create an OAuth client in Google Cloud with the Google Health API enabled, and use a redirect URI like `http://localhost:5173/api/health/google/callback`. To try an Apple Health import, open Health, go to Sources, and choose the `export.zip` from the iPhone Health app (profile picture, then Export All Health Data).
+
+The agent, voice, Google Health and twin-download routes run inside the Vite server, so use `npm run dev` or `npm run preview`. A static deployment would need them as edge functions.
 
 Run `npm test` and `npm run build` for checks; the tests mock every external API.
 
