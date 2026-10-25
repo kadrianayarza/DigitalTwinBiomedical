@@ -976,6 +976,12 @@ textarea:disabled {
   flex-direction: column;
   min-width: 0;
 }
+.list__row--entry {
+  row-gap: 4px;
+}
+.list__body {
+  grid-column: 1 / -1;
+}
 .list__row--click:hover {
   background: var(--glass-hi);
 }

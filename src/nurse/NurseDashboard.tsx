@@ -212,12 +212,13 @@ function PatientDetail({
                 {symptoms.slice(0, 8).map(s => (
                   <li key={String(s.id)}>
                     <button
-                      className={`list__row list__row--click ${selectedPin === String(s.id) ? 'list__row--on' : ''}`}
+                      className={`list__row list__row--click list__row--entry ${selectedPin === String(s.id) ? 'list__row--on' : ''}`}
                       onClick={() => onSelectPin(String(s.id))}
                     >
                       <SeverityHex severity={s.severity} />
-                      <span className="list__main">
-                        <strong>{regionLabel(s.region)}</strong>
+                      <strong>{regionLabel(s.region)}</strong>
+                      <span className="mono muted small">{clock(s.createdAt)}</span>
+                      <span className="list__main list__body">
                         <span className="muted small">
                           {[
                             s.quality,
@@ -238,7 +239,6 @@ function PatientDetail({
                           <span className="list__danger">Chest pain or breathing trouble reported</span>
                         )}
                       </span>
-                      <span className="mono muted small">{clock(s.createdAt)}</span>
                     </button>
                   </li>
                 ))}
