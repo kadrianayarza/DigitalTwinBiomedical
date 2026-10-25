@@ -10,9 +10,13 @@ export type FocusRegion = {
   offset: Vec3;
 };
 
+/** The only implant the twin can draw is a total knee replacement. */
+export const hasKneeImplant = (procedure: string) =>
+  /knee/i.test(procedure) && /replacement|arthroplasty/i.test(procedure);
+
 /**
  * Twin space: feet at y=0, about 1.72 m tall, facing +z, patient's right at -x.
- * Seated twins only matter for the outside scan; the inside view is always standing.
+ * Seated twins only matter for the personal scan; the anatomy view is always standing.
  */
 export function focusForCondition(procedure: string, side: 'l' | 'r', seated = false): FocusRegion | null {
   const sx = side === 'r' ? -1 : 1;

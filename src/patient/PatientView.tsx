@@ -7,6 +7,7 @@ import { careLabel, daysSince, timeAgo, usesWheelchair } from '../lib/format';
 import { TwinViewer, type TwinPin, type TwinPointer } from '../twin/TwinViewer';
 import { regionLabel } from '../twin/bodyModel';
 import { buildHotspots } from '../twin/hotspots';
+import { hasKneeImplant } from '../twin/focus';
 import { PodVitals } from '../components/PodVitals';
 import { Brand, Panel, SeverityHex } from '../components/ui';
 import { RoleSwitch } from '../components/RoleSwitch';
@@ -158,7 +159,7 @@ export function PatientView({ patient }: { patient: Patient }) {
             twinUrl={patient.twinUrl}
             seated={usesWheelchair(patient)}
             procedure={patient.procedure}
-            hotspots={buildHotspots({ vitals, audience: 'patient' })}
+            hotspots={buildHotspots({ vitals, audience: 'patient', kneeImplant: hasKneeImplant(patient.procedure) })}
             onTap={(region, point) => setPending({ region, point })}
             onHover={p =>
               void updatePointer({
@@ -202,6 +203,7 @@ export function PatientView({ patient }: { patient: Patient }) {
         audience="patient"
         threadKey={`patient-${patient.id}`}
         title="Your health agent"
+        subtitle="Knows your twin and recent readings"
         greeting={`Hi ${firstName}, I'm your health agent. I can see your twin's vitals and your check-ins. Ask me how you're doing, what a number means, or what to watch for.`}
         suggestions={['How am I doing today?', 'What do my vitals mean?', 'What should I watch for?']}
         disclaimer="Not a diagnosis. In an emergency, call 911."

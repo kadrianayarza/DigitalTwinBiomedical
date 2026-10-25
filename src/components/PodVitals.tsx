@@ -9,6 +9,15 @@ export function PodVitals({ vitals, detailed }: Props) {
   const last = vitals[vitals.length - 1];
   const series = (f: (v: VitalSign) => number) => vitals.slice(-60).map(f);
   const fmt = (n: number | undefined, digits = 0) => (n === undefined ? '–' : n.toFixed(digits));
+  // Alarms follow the 5-reading mean, like the server rules, so noise near a threshold does not flicker them.
+  const recent = vitals.slice(-5);
+  const mean = (f: (v: VitalSign) => number) =>
+    recent.length ? recent.reduce((s, v) => s + f(v), 0) / recent.length : undefined;
+  const hr = mean(v => v.hr);
+  const systolic = mean(v => v.systolic);
+  const respRate = mean(v => v.respRate);
+  const spo2 = mean(v => v.spo2);
+  const tempC = mean(v => v.tempC);
 
   const tiles = [
     {
@@ -17,7 +26,7 @@ export function PodVitals({ vitals, detailed }: Props) {
       unit: 'bpm',
       values: series(v => v.hr),
       color: '#ff5468',
-      alarm: (last?.hr ?? 0) > 100,
+      alarm: (hr ?? 0) > 100,
       min: 55,
       max: 125,
     },
@@ -27,7 +36,7 @@ export function PodVitals({ vitals, detailed }: Props) {
       unit: 'mmHg',
       values: series(v => v.systolic),
       color: '#b48cff',
-      alarm: last ? last.systolic < 90 || last.systolic >= 180 : false,
+      alarm: systolic !== undefined && (systolic < 90 || systolic >= 180),
       min: 80,
       max: 190,
     },
@@ -37,7 +46,7 @@ export function PodVitals({ vitals, detailed }: Props) {
       unit: '/min',
       values: series(v => v.respRate),
       color: '#22b573',
-      alarm: (last?.respRate ?? 0) > 24,
+      alarm: (respRate ?? 0) > 24,
       min: 8,
       max: 32,
     },
@@ -47,7 +56,7 @@ export function PodVitals({ vitals, detailed }: Props) {
       unit: '%',
       values: series(v => v.spo2),
       color: '#3ad7ff',
-      alarm: (last?.spo2 ?? 100) < 93,
+      alarm: (spo2 ?? 100) < 93,
       min: 88,
       max: 100,
     },
@@ -57,7 +66,7 @@ export function PodVitals({ vitals, detailed }: Props) {
       unit: '°C',
       values: series(v => v.tempC),
       color: '#ff8a2a',
-      alarm: (last?.tempC ?? 0) >= 38,
+      alarm: (tempC ?? 0) >= 38,
       min: 35.5,
       max: 39.5,
       wide: true,
@@ -79,7 +88,9 @@ export function PodVitals({ vitals, detailed }: Props) {
           >
             <div className="tile__label">
               {t.label}
-              {t.alarm && <span className="tile__warn">Check</span>}
+              <span className={`tile__flag ${t.alarm ? 'tile__flag--on' : ''}`} aria-hidden={!t.alarm}>
+                <span className="tile__warn">Check</span>
+              </span>
             </div>
             <div className="tile__value">
               {t.value}

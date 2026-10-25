@@ -264,7 +264,7 @@ type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 // Helpers
 // ---------------------------------------------------------------------------
 
-const SIM_INTERVAL_MICROS = 2_000_000n;
+const SIM_INTERVAL_MICROS = 5_000_000n;
 const VITALS_KEPT_PER_PATIENT = 120;
 const DAY_MICROS = 86_400_000_000n;
 
@@ -381,6 +381,13 @@ function recentVitals(ctx: Ctx, patientId: bigint) {
 }
 
 function ensureSimTimer(ctx: Ctx) {
+  // Published databases keep their timer row, so a changed interval is applied on the next connect.
+  for (const timer of [...ctx.db.simTimer.iter()]) {
+    const at = timer.scheduledAt;
+    if (at.tag !== 'Interval' || at.value.micros !== SIM_INTERVAL_MICROS) {
+      ctx.db.simTimer.scheduledId.delete(timer.scheduledId);
+    }
+  }
   if (ctx.db.simTimer.count() === 0n) {
     ctx.db.simTimer.insert({
       scheduledId: 0n,
@@ -847,7 +854,7 @@ export const simTick = spacetimedb.reducer(
       for (const old of window.slice(0, Math.max(0, window.length - VITALS_KEPT_PER_PATIENT))) {
         ctx.db.vitalSign.id.delete(old.id);
       }
-      if (tick % 5 === 0) {
+      if (tick % 2 === 0) {
         raiseAlerts(ctx, s.patientId, vitalRules(window.slice(-60)));
       }
     }

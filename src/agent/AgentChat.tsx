@@ -7,6 +7,7 @@ type Props = {
   /** Conversations are kept per thread for this browser tab. */
   threadKey: string;
   title: string;
+  subtitle: string;
   greeting: string;
   suggestions: string[];
   disclaimer: string;
@@ -122,7 +123,7 @@ export function AgentChat(props: Props) {
             </span>
             <div className="agent__titles">
               <strong>{props.title}</strong>
-              <span>DeepSeek V4.1 Flash · Bitdeer</span>
+              <span>{props.subtitle}</span>
             </div>
             {turns.length > 0 && (
               <button className="agent__iconbtn" onClick={clear} title="New conversation" aria-label="New conversation">

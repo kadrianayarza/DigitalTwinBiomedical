@@ -126,19 +126,19 @@ export function simulateVitals(scenario: string, tick: number, noise: () => numb
   let tempC = 36.8 + noise() * 0.12;
 
   if (scenario === 'dvt') {
-    const r = ramp(5, 40);
+    const r = ramp(2, 16);
     hr += 30 * r;
     respRate += 11 * r;
     spo2 -= 2.5 * r;
   } else if (scenario === 'infection') {
-    const r = ramp(5, 45);
+    const r = ramp(2, 18);
     hr += 22 * r;
     respRate += 6 * r;
     systolic -= 14 * r;
     diastolic -= 8 * r;
     tempC += 1.8 * r;
   } else if (scenario === 'fluid') {
-    const r = ramp(5, 45);
+    const r = ramp(2, 18);
     hr += 16 * r;
     respRate += 11 * r;
     systolic += 28 * r;

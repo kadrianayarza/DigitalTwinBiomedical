@@ -54,7 +54,7 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
       <p className="muted small">
         {patient.twinUrl
           ? 'Your twin was made from your photo. The shape is approximate.'
-          : 'Add a full-body photo (standing, arms slightly out) and we will shape the twin to look like you. Until then, your twin shows the inside view.'}
+          : 'Add a full-body photo (standing, arms slightly out) and we will shape the twin to look like you. Until then, your twin shows the anatomy view.'}
       </p>
 
       {busy && (
@@ -92,7 +92,7 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
         onChange={e => void onFile(e.target.files?.[0])}
       />
       <p className="muted tiny">
-        Your photo becomes an approximate outside view. Your care team sees the twin. The inside layers are a
+        Your photo becomes an approximate patient view. Your care team sees the twin. The anatomy layers are a
         reference model, not your scan. Use non-sensitive photos for this demo.
       </p>
     </Panel>

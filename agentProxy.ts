@@ -48,7 +48,8 @@ export function healthAgent(opts: { apiKey?: string; model?: string }): Plugin {
       if (req.method !== 'POST') return fail(res, 405, 'Use POST.');
       const apiKey = opts.apiKey?.trim();
       if (!apiKey) {
-        return fail(res, 503, 'The health agent is not set up yet (BITDEER_API_KEY is missing on the server).');
+        console.error('[health-agent] BITDEER_API_KEY is not set on the server.');
+        return fail(res, 503, 'The health agent is not set up yet.');
       }
       let parsed;
       try {

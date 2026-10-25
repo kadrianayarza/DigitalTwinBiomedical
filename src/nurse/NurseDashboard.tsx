@@ -117,6 +117,7 @@ export function NurseDashboard() {
         audience="nurse"
         threadKey="nurse"
         title="Clinical agent"
+        subtitle="Sees the census and the open chart"
         greeting="I can see the full census and the chart you have open. Ask me to prioritize patients, interpret a trend, or tighten an SBAR."
         suggestions={[
           'Who needs attention first?',
@@ -207,6 +208,7 @@ function PatientDetail({
               twinUrl={patient.twinUrl}
               seated={usesWheelchair(patient)}
               hotspots={buildHotspots({ vitals, audience: 'nurse' })}
+              procedure={patient.procedure}
               compact
             />
           </div>

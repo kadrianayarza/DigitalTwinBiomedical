@@ -18,7 +18,7 @@ import {
   useGltfStatus,
 } from './anatomy';
 import type { HotspotTone, TwinHotspot } from './hotspots';
-import { focusForCondition, type FocusRegion } from './focus';
+import { focusForCondition, hasKneeImplant, type FocusRegion } from './focus';
 import { createGroundShadowTexture, createTwinMaterials, setTwinMaterialMode, type TwinMaterials } from './materials';
 
 export type TwinPin = {
@@ -42,7 +42,7 @@ type Props = {
   onTap?: (region: string, point: [number, number, number]) => void;
   onHover?: (point: [number, number, number] | null) => void;
   hotspots?: TwinHotspot[];
-  /** Personal Meshy twin (GLB). Without one, the viewer shows the inside view only. */
+  /** Personal Meshy twin (GLB). Without one, the viewer shows the anatomy view only. */
   twinUrl?: string;
   /** The personal scan is seated (wheelchair user). */
   seated?: boolean;
@@ -92,6 +92,9 @@ export function TwinViewer(props: Props) {
     () => (props.procedure ? focusForCondition(props.procedure, props.side === 'left' ? 'l' : 'r', seatedScan) : null),
     [props.procedure, props.side, seatedScan]
   );
+  useEffect(() => setFocus('body'), [props.procedure]);
+  const implant = !!props.procedure && hasKneeImplant(props.procedure);
+  const layerChips = implant ? LAYERS : LAYERS.filter(l => l.id !== 'implant');
 
   const rootRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -134,7 +137,7 @@ export function TwinViewer(props: Props) {
             seatedScan={seatedScan}
             fit={fit}
             mode={view}
-              layers={layers}
+              layers={implant ? layers : { ...layers, implant: false }}
               focus={focus}
               region={region}
               focusNonce={focusNonce}
@@ -148,15 +151,15 @@ export function TwinViewer(props: Props) {
 
       <div className="twin__hud" aria-hidden>
         <span className="twin__hudlabel">
-          Twin · {view === 'outside' ? 'Exterior' : 'Interior'}
-          <em>{view === 'outside' && skinKind === 'scan' ? 'Personal' : 'Anatomy'}</em>
+          Twin · {view === 'outside' ? 'Patient' : 'Anatomy'}
+          <em>{view === 'outside' && skinKind === 'scan' ? 'Personal' : 'Reference'}</em>
         </span>
       </div>
 
       <div className="twin__dock">
         {view === 'inside' && (
           <div className="legend" role="group" aria-label="Anatomy layers">
-            {LAYERS.map(l => (
+            {layerChips.map(l => (
               <button
                 key={l.id}
                 className={`legend__chip ${layers[l.id] ? '' : 'legend__chip--off'}`}
@@ -170,7 +173,7 @@ export function TwinViewer(props: Props) {
           </div>
         )}
         <div ref={controlsRef} className="twin__controls">
-          {!props.compact && region && (
+          {region && (
             <div className="seg" role="group" aria-label="Camera focus">
               {(['body', 'region'] as const).map(f => (
                 <button
@@ -197,7 +200,7 @@ export function TwinViewer(props: Props) {
                 title={m === 'outside' && !hasScan ? (scanLoading ? 'Loading the personal scan…' : 'No personal scan yet') : undefined}
                 onClick={() => setMode(m)}
               >
-                {m === 'outside' ? 'Outside' : 'Inside'}
+                {m === 'outside' ? 'Patient' : 'Anatomy'}
               </button>
             ))}
           </div>
@@ -599,13 +602,14 @@ function HexRing({ r, width, color, opacity = 1, order }: { r: number; width: nu
 }
 
 /** Expanding hexagon pulse, like a sensor ping. Owns its material ref safely. */
-function PulseRing({ color, speed = 0.7 }: { color: string; speed?: number }) {
+function PulseRing({ color, speed = 0.35 }: { color: string; speed?: number }) {
   const mat = useRef<THREE.MeshBasicMaterial>(null);
   const group = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
     const t = (clock.elapsedTime * speed) % 1;
     if (group.current) group.current.scale.setScalar(1 + t * 0.9);
-    if (mat.current) mat.current.opacity = 0.6 * (1 - t);
+    // Zero at both ends of the cycle, so the ring never pops back in.
+    if (mat.current) mat.current.opacity = 0.55 * Math.sin(Math.PI * t) ** 2;
   });
   return (
     <group ref={group}>
@@ -694,7 +698,7 @@ function Hotspot({
         <meshBasicMaterial color={open ? '#ffffff' : color} depthWrite={false} />
       </mesh>
       <HexRing r={0.02} width={0.003} color={color} order={7} />
-      <PulseRing color={color} speed={spot.tone === 'alarm' ? 1.4 : 0.7} />
+      <PulseRing color={color} speed={spot.tone === 'alarm' ? 0.6 : 0.35} />
       {open && (
         <Html zIndexRange={[6, 0]} style={{ pointerEvents: 'none' }}>
           <div className={`callout callout--${spot.tone} ${flip ? 'callout--flip' : ''}`}>

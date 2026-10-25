@@ -14,10 +14,12 @@ export type TwinHotspot = {
 type Input = {
   vitals: readonly VitalSign[];
   audience: 'patient' | 'nurse';
+  /** Knee replacement: adds the incision and knee-bend guidance for patients. */
+  kneeImplant?: boolean;
 };
 
 /** Landmark callouts. Thresholds mirror the server rules in spacetimedb/src/clinical.ts. */
-export function buildHotspots({ vitals, audience }: Input): TwinHotspot[] {
+export function buildHotspots({ vitals, audience, kneeImplant = false }: Input): TwinHotspot[] {
   const recent = vitals.slice(-5);
   const avg = (f: (v: VitalSign) => number) =>
     recent.length ? recent.reduce((s, v) => s + f(v), 0) / recent.length : undefined;
@@ -39,7 +41,7 @@ export function buildHotspots({ vitals, audience }: Input): TwinHotspot[] {
         : 'info';
 
   if (audience === 'patient') {
-    return [
+    const spots: TwinHotspot[] = [
       {
         id: 'incision',
         kicker: 'Incision',
@@ -71,6 +73,7 @@ export function buildHotspots({ vitals, audience }: Input): TwinHotspot[] {
         tone: 'alarm',
       },
     ];
+    return kneeImplant ? spots : spots.filter(s => s.id !== 'incision' && s.id !== 'bend');
   }
 
   const none = 'No pod data yet.';
