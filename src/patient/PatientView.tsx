@@ -11,6 +11,8 @@ import { PodVitals } from '../components/PodVitals';
 import { Brand, Panel, SeverityHex } from '../components/ui';
 import { RoleSwitch } from '../components/RoleSwitch';
 import { PatientSwitch } from '../components/PatientSwitch';
+import { AgentChat } from '../agent/AgentChat';
+import { patientAgentContext } from '../agent/context';
 import { SymptomSheet, type SymptomDraft } from './SymptomSheet';
 import { TwinPhotoCard } from './TwinPhotoCard';
 
@@ -195,6 +197,16 @@ export function PatientView({ patient }: { patient: Patient }) {
       <aside className="patient__right">
         <PodVitals vitals={vitals} />
       </aside>
+
+      <AgentChat
+        audience="patient"
+        threadKey={`patient-${patient.id}`}
+        title="Your health agent"
+        greeting={`Hi ${firstName}, I'm your health agent. I can see your twin's vitals and your check-ins. Ask me how you're doing, what a number means, or what to watch for.`}
+        suggestions={['How am I doing today?', 'What do my vitals mean?', 'What should I watch for?']}
+        disclaimer="Not a diagnosis. In an emergency, call 911."
+        buildContext={() => patientAgentContext(data, patient)}
+      />
 
       {pending && <SymptomSheet region={pending.region} onCancel={() => setPending(null)} onSubmit={submit} />}
       {toast && <div className="toast">{toast}</div>}

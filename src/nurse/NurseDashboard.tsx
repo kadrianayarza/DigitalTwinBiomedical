@@ -12,6 +12,8 @@ import { Brand, Hex, Panel, SeverityHex, type HexTone } from '../components/ui';
 import { RoleSwitch } from '../components/RoleSwitch';
 import { SbarPanel } from './SbarPanel';
 import { ImpactBar } from './ImpactBar';
+import { AgentChat } from '../agent/AgentChat';
+import { nurseAgentContext } from '../agent/context';
 
 const PRIORITY_TONE: Record<string, HexTone> = {
   emergency: 'alarm',
@@ -110,6 +112,21 @@ export function NurseDashboard() {
           <div className="empty">No patients yet.</div>
         )}
       </div>
+
+      <AgentChat
+        audience="nurse"
+        threadKey="nurse"
+        title="Clinical agent"
+        greeting="I can see the full census and the chart you have open. Ask me to prioritize patients, interpret a trend, or tighten an SBAR."
+        suggestions={[
+          'Who needs attention first?',
+          ...(selected
+            ? [`Summarize ${selected.name.split(' ')[0]}'s chart`, `What should I ask ${selected.name.split(' ')[0]}?`]
+            : []),
+        ]}
+        disclaimer="Decision support only. Verify against the chart before acting."
+        buildContext={() => nurseAgentContext(data, selected)}
+      />
     </div>
   );
 }
