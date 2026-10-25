@@ -3,7 +3,6 @@ import { useReducer } from 'spacetimedb/react';
 import { reducers } from '../module_bindings';
 import type { Patient } from '../module_bindings/types';
 import { useData } from '../lib/data';
-import { Panel } from '../components/ui';
 
 const MAX_SIDE = 1024;
 
@@ -50,38 +49,35 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
   };
 
   return (
-    <Panel title="Your twin" code={patient.twinUrl ? 'Personal scan' : 'No scan yet'} className="twinphoto">
-      <p className="muted small">
-        {patient.twinUrl
-          ? 'Your twin was made from your photo. The shape is approximate.'
-          : 'Add a full-body photo (standing, arms slightly out) and we will shape the twin to look like you. Until then, your twin shows the anatomy view.'}
-      </p>
-
-      {busy && (
+    <div
+      className="twinphoto"
+      title="Use a full-body photo, standing with arms slightly out. The shape is approximate, your care team sees the twin, and the anatomy layers are a reference model. Use non-sensitive photos."
+    >
+      {busy ? (
         <div className="twinphoto__status" role="status">
           <span className="spinner" aria-hidden />
           {uploading || status?.status === 'queued'
             ? 'Submitting your photo…'
             : status?.detail || 'Building your 3D twin. This can take several minutes.'}
         </div>
+      ) : (
+        <div className="twinphoto__row">
+          <span>{patient.twinUrl ? 'Twin made from your photo' : 'Twin shows the anatomy view'}</span>
+          <button className="twinphoto__link" onClick={() => input.current?.click()}>
+            {patient.twinUrl ? 'Change photo' : 'Add a photo'}
+          </button>
+          {patient.twinUrl && (
+            <button
+              className="twinphoto__link"
+              onClick={() => void setTwinUrl({ patientId: patient.id, twinUrl: '' }).catch(e => setError(String(e)))}
+            >
+              Remove
+            </button>
+          )}
+        </div>
       )}
       {status?.status === 'error' && <div className="twinphoto__error">Couldn’t build your twin: {status.detail}</div>}
       {error && <div className="twinphoto__error">{error}</div>}
-
-      <div className="twinphoto__actions">
-        <button className="btn" disabled={busy} onClick={() => input.current?.click()}>
-          {patient.twinUrl ? 'Use a new photo' : 'Make my twin from a photo'}
-        </button>
-        {patient.twinUrl && (
-          <button
-            className="btn btn--ghost"
-            disabled={busy}
-            onClick={() => void setTwinUrl({ patientId: patient.id, twinUrl: '' }).catch(e => setError(String(e)))}
-          >
-            Remove my scan
-          </button>
-        )}
-      </div>
       <input
         ref={input}
         type="file"
@@ -91,10 +87,6 @@ export function TwinPhotoCard({ patient }: { patient: Patient }) {
         hidden
         onChange={e => void onFile(e.target.files?.[0])}
       />
-      <p className="muted tiny">
-        Your photo becomes an approximate patient view. Your care team sees the twin. The anatomy layers are a
-        reference model, not your scan. Use non-sensitive photos for this demo.
-      </p>
-    </Panel>
+    </div>
   );
 }
