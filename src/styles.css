@@ -44,7 +44,7 @@
   color-scheme: light;
 }
 
-/* ---------- professional theme: muted slate palette, Peignot-style headings ---------- */
+/* ---------- professional theme: muted slate palette, EHR-style type, Peignot-style brand name ---------- */
 :root[data-theme='professional'] {
   --bg0: #fbfaf7;
   --bg1: #eeede8;
@@ -75,44 +75,21 @@
   --vital-spo2: #4b8aa3;
   --vital-temp: #b07c3a;
 
-  --font-display: 'Peignot', 'Peignot LT Std', 'Peignot Std', 'Poiret One', 'Google Sans Flex Variable', sans-serif;
-  --display-weight: 700;
+  --font-ehr: 'Segoe UI', 'Open Sans Variable', 'Open Sans', Tahoma, Arial, sans-serif;
+  --font-brand: 'Peignot', 'Peignot LT Std', 'Peignot Std', 'Poiret One', var(--font-ehr);
+  --font-display: var(--font-ehr);
+  --font-ui: var(--font-ehr);
+  --font-body: var(--font-ehr);
+  --font-mono: var(--font-ehr);
+  --display-weight: 600;
   --blur: blur(16px);
+  font-variant-numeric: tabular-nums;
 }
-:root[data-theme='professional'] :is(
-    .kicker,
-    .panel__title,
-    .brand__sub,
-    .field__label,
-    .hint,
-    .tile__label,
-    .impact__label,
-    .census__prio,
-    .sbar__label,
-    .severity__word,
-    .triad__val,
-    .topbar__who strong,
-    .demo summary,
-    .titlecard,
-    .brand__name,
-    .banner__title,
-    .choice__title,
-    .sheet__title,
-    .alert-card__prio,
-    .triad__name,
-    h1,
-    h2,
-    h3
-  ) {
-  font-family: var(--font-display);
+:root[data-theme='professional'] :is(.brand__name, .titlecard--hero) {
+  font-family: var(--font-brand);
   font-weight: 700;
-  -webkit-text-stroke: 0.045em currentColor;
-}
-:root[data-theme='professional'] :is(.titlecard, .brand__name, .titlecard--name, .sheet__title, .choice__title) {
   letter-spacing: 0.02em;
-}
-:root[data-theme='professional'] :is(.kicker, .panel__title, .tile__label, .field__label, .sbar__label) {
-  letter-spacing: 0.16em;
+  -webkit-text-stroke: 0.045em currentColor;
 }
 * {
   box-sizing: border-box;

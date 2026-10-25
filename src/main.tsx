@@ -8,6 +8,7 @@ import { initTheme } from './lib/theme.ts';
 import '@fontsource-variable/google-sans-flex/standard.css';
 import '@fontsource-variable/google-sans-code';
 import '@fontsource/poiret-one';
+import '@fontsource-variable/open-sans';
 import './styles.css';
 
 initTheme();
