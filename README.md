@@ -24,7 +24,7 @@ Care breaks down between visits. Patients now go home a day after a knee replace
 - **Live vitals from the Twin Pod.** Heart rate, blood pressure, respiratory rate, SpO₂ and temperature stream onto the dashboard and onto the twin itself.
 - **Their health record, Apple Health style.** A Health app inside the twin has activity rings (Move, Exercise, and Stand, or Roll for wheelchair users), pinned metrics and highlights. It also covers every Apple Health category: activity, body measurements, heart, respiratory, vitals, sleep stages, mobility, nutrition, mindfulness, cycle tracking and symptoms. Each metric has day, week, month and six-month charts. Patients can log blood pressure, weight, glucose, mood, a period or a workout, and tick off each medication dose.
 - **Their own devices.** Patients can import an Apple Health export (`export.zip` from the iPhone Health app). It's read in the browser, covering Apple Watch, iPhone, scale, cuff and glucose monitor data, and only daily or hourly summaries are uploaded. Fitbit and Pixel Watch connect through the Google Health API. Labelled demo devices can be paired for the hackathon demo.
-- **A health agent that knows them.** Patients can ask "How am I doing today?" or "What does this number mean?" and get answers grounded in their own twin and readings. It doesn't diagnose, and it points to 911 for red flags.
+- **A health agent that knows them.** Patients can ask "How am I doing today?" or "What does this number mean?" and get answers grounded in their own twin and readings. It doesn't diagnose, and it points to 911 for red flags. Patients can also just talk to it: hands-free voice turns, with the transcript kept in the same chat.
 - **Clear status, never raw AI output.** Patients see "Your care team has been notified," then "Marcus has reviewed your check-in." Chest pain or sudden shortness of breath shows **Call 911 now** instantly.
 
 ### For the nurse
@@ -107,6 +107,8 @@ flowchart TB
 
 **The health agents** stream from a small server endpoint that holds the key. The patient and nurse agents use separate system prompts. The nurse agent sees the census and the open chart; the patient agent sees only the patient's own twin and readings. Both agents, and the SBAR job, get a seven-day digest of home and wearable data: daily values, missed doses and irregular rhythm notifications.
 
+**Voice chat** uses OpenAI's gpt-audio through OpenRouter. The browser listens with an energy-based turn detector that adapts to background noise. When you pause, it sends that turn as a 16 kHz WAV. The server streams the spoken reply back as 24 kHz PCM, and the browser starts playing it as soon as the first chunk arrives. A parallel text-only pass transcribes what you said, so the chat shows both sides and later turns, spoken or typed, keep the context. Talking over the agent interrupts it. The voice agent uses the same safety prompt and record context as the text agent, plus rules for speaking aloud.
+
 **Health integrations.** There is no HealthKit on the web, so Apple Health data arrives as the export from the iPhone Health app. The browser streams the zip with fflate, parses `export.xml` in chunks, and rolls readings up per source: daily totals, hourly heart rate and blood pressure, and sleep stages per night. It converts units (lb, °F, mmol/L, miles) and uploads at most 4,000 summaries per batch. Re-importing updates readings it already has instead of duplicating them. Fitbit and Pixel Watch data comes from the Google Health API, because the older Fitbit Web API is being retired. The OAuth client secret and refresh tokens stay in the app server, which returns only normalized readings to the browser.
 
 ## Built with
@@ -118,6 +120,7 @@ flowchart TB
 | 3D | three.js, React Three Fiber, drei, BodyParts3D anatomy |
 | SBAR drafting | Anthropic Claude (tool use) |
 | Draft review and health agents | DeepSeek V4.1 Flash on Bitdeer |
+| Voice chat | OpenAI gpt-audio via OpenRouter |
 | Photo to 3D | Meshy image-to-3D |
 | Health integrations | Apple Health export (parsed in the browser with fflate), Google Health API for Fitbit and Pixel Watch |
 | Development | Cursor |
@@ -158,7 +161,7 @@ spacetime publish twincare --server twinlocal --module-path spacetimedb --yes   
 npm run dev
 ```
 
-Open `/?role=patient` and `/?role=nurse` in two windows. In the nurse console, **Demo controls** switch a patient's simulated pod to a blood clot, infection or fluid overload pattern. The app works without any API keys: SBARs fall back to a template, and the twin uses the anatomy view. For AI drafts and photo twins, pass `ANTHROPIC_API_KEY`, `BITDEER_API_KEY` and `MESHY_API_KEY` as shell variables when publishing (never as `VITE_*` variables). The health agents read `BITDEER_API_KEY` from `.env.local`.
+Open `/?role=patient` and `/?role=nurse` in two windows. In the nurse console, **Demo controls** switch a patient's simulated pod to a blood clot, infection or fluid overload pattern. The app works without any API keys: SBARs fall back to a template, and the twin uses the anatomy view. For AI drafts and photo twins, pass `ANTHROPIC_API_KEY`, `BITDEER_API_KEY` and `MESHY_API_KEY` as shell variables when publishing (never as `VITE_*` variables). The health agents read `BITDEER_API_KEY` from `.env.local`. Voice chat reads `OPENROUTER_API_KEY`; without it, the mic button is hidden. `OPENROUTER_VOICE` picks the voice (default `coral`).
 
 Every demo patient comes with four weeks of home and wearable history. To connect a real Fitbit or Pixel Watch, create an OAuth client in Google Cloud with the Google Health API enabled. Then add `GOOGLE_HEALTH_CLIENT_ID`, `GOOGLE_HEALTH_CLIENT_SECRET` and `GOOGLE_HEALTH_REDIRECT_URI` (for example `http://localhost:5173/api/health/google/callback`) to `.env.local`. Without them, the Sources page offers demo devices instead. To try an Apple Health import, open Health, go to Sources, and choose the `export.zip` from the iPhone Health app (profile picture, then Export All Health Data).
 
