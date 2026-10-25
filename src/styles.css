@@ -44,7 +44,7 @@
   color-scheme: light;
 }
 
-/* ---------- professional theme: muted, near-monochrome palette and lighter titles ---------- */
+/* ---------- professional theme: muted monochrome, Peignot-style headings, serif text ---------- */
 :root[data-theme='professional'] {
   --bg0: #fbfbfa;
   --bg1: #efefed;
@@ -75,8 +75,44 @@
   --vital-spo2: #5c6f7a;
   --vital-temp: #8a7148;
 
-  --display-weight: 600;
+  --font-display: 'Peignot', 'Peignot LT Std', 'Peignot Std', 'Poiret One', 'Google Sans Flex Variable', sans-serif;
+  --display-weight: 700;
   --blur: blur(16px);
+}
+:root[data-theme='professional'] :is(
+    .kicker,
+    .panel__title,
+    .brand__sub,
+    .field__label,
+    .hint,
+    .tile__label,
+    .impact__label,
+    .census__prio,
+    .sbar__label,
+    .severity__word,
+    .triad__val,
+    .topbar__who strong,
+    .demo summary,
+    .titlecard,
+    .brand__name,
+    .banner__title,
+    .choice__title,
+    .sheet__title,
+    .alert-card__prio,
+    .triad__name,
+    h1,
+    h2,
+    h3
+  ) {
+  font-family: var(--font-display);
+  font-weight: 700;
+  -webkit-text-stroke: 0.045em currentColor;
+}
+:root[data-theme='professional'] :is(.titlecard, .brand__name, .titlecard--name, .sheet__title, .choice__title) {
+  letter-spacing: 0.02em;
+}
+:root[data-theme='professional'] :is(.kicker, .panel__title, .tile__label, .field__label, .sbar__label) {
+  letter-spacing: 0.16em;
 }
 * {
   box-sizing: border-box;
