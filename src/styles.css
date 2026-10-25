@@ -37,6 +37,7 @@
   --font-ui: 'Google Sans Flex Variable', 'Google Sans', system-ui, sans-serif;
   --font-body: 'Google Sans Flex Variable', 'Google Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'Google Sans Code Variable', ui-monospace, 'SF Mono', monospace;
+  --font-brand: 'Peignot', 'Peignot LT Std', 'Peignot Std', 'Poiret One', 'Google Sans Flex Variable', sans-serif;
   --display-weight: 800;
 
   --radius: 10px;
@@ -76,7 +77,6 @@
   --vital-temp: #b07c3a;
 
   --font-ehr: 'Segoe UI', 'Open Sans Variable', 'Open Sans', Tahoma, Arial, sans-serif;
-  --font-brand: 'Peignot', 'Peignot LT Std', 'Peignot Std', 'Poiret One', var(--font-ehr);
   --font-display: var(--font-ehr);
   --font-ui: var(--font-ehr);
   --font-body: var(--font-ehr);
@@ -85,7 +85,7 @@
   --blur: blur(16px);
   font-variant-numeric: tabular-nums;
 }
-:root[data-theme='professional'] :is(.brand__name, .titlecard--hero) {
+:root :is(.brand__name, .titlecard--hero) {
   font-family: var(--font-brand);
   font-weight: 700;
   letter-spacing: 0.02em;
