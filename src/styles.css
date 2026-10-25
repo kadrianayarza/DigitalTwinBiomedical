@@ -732,6 +732,8 @@ textarea:disabled {
 
 /* ---------- top bar ---------- */
 .topbar {
+  position: relative;
+  z-index: 45;
   display: flex;
   align-items: center;
   gap: 18px;
@@ -799,17 +801,9 @@ textarea:disabled {
   gap: 1px;
   padding: 0 4px 0 7px;
 }
-.themeswitch__btn {
-  gap: 6px;
-  padding: 0 10px 0 8px;
-}
 .roleswitch .themeswitch__half {
   fill: currentColor;
   stroke: none;
-}
-.themeswitch__label {
-  font-size: 13px;
-  font-weight: 600;
 }
 .themeswitch__menu {
   min-width: 230px;
@@ -818,17 +812,7 @@ textarea:disabled {
   position: fixed;
   top: 14px;
   right: 16px;
-  z-index: 5;
-}
-@media (max-width: 900px) {
-  .themeswitch__label {
-    display: none;
-  }
-  .themeswitch__btn {
-    padding: 0;
-    width: 32px;
-    justify-content: center;
-  }
+  z-index: 45;
 }
 .roleswitch .pswitch__chev {
   width: 12px;
@@ -912,8 +896,6 @@ textarea:disabled {
 }
 .patient > .topbar {
   grid-area: top;
-  position: relative;
-  z-index: 2;
 }
 .patient__banner {
   grid-area: banner;

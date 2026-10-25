@@ -22,7 +22,7 @@ export function ThemeSwitch() {
   return (
     <div className="pswitch" ref={root}>
       <button
-        className="roleswitch pswitch__btn themeswitch__btn"
+        className="roleswitch"
         onClick={() => setOpen(o => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -33,7 +33,6 @@ export function ThemeSwitch() {
           <circle cx="12" cy="12" r="8.5" />
           <path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" className="themeswitch__half" />
         </svg>
-        <span className="themeswitch__label">Themes</span>
       </button>
       {open && (
         <div className="pswitch__menu themeswitch__menu" role="menu" aria-label="Themes">
