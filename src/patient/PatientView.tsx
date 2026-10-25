@@ -12,6 +12,7 @@ import { PodVitals } from '../components/PodVitals';
 import { Brand, Panel, SeverityHex } from '../components/ui';
 import { RoleSwitch } from '../components/RoleSwitch';
 import { PatientSwitch } from '../components/PatientSwitch';
+import { ThemeSwitch } from '../components/ThemeSwitch';
 import { AgentChat } from '../agent/AgentChat';
 import { patientAgentContext } from '../agent/context';
 import { SymptomSheet, type SymptomDraft } from './SymptomSheet';
@@ -121,6 +122,7 @@ export function PatientView({ patient }: { patient: Patient }) {
             Day {String(day).padStart(2, '0')} · {careLabel(patient)}
           </span>
         </div>
+        <ThemeSwitch />
         <PatientSwitch currentId={patient.id} />
         <RoleSwitch to="nurse" />
       </header>

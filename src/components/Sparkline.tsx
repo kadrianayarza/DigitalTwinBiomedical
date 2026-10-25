@@ -33,9 +33,9 @@ export function Sparkline({ values, min, max, color = '#3ad7ff', baseline, heigh
       {baseline !== undefined && (
         <line x1={0} x2={W} y1={y(baseline)} y2={y(baseline)} className="spark__base" vectorEffect="non-scaling-stroke" />
       )}
-      <polyline points={`0,${h} ${pts} ${W},${h}`} fill={color} opacity={0.08} stroke="none" />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
-      <circle cx={W} cy={y(last)} r={2.5} fill={color} vectorEffect="non-scaling-stroke" />
+      <polyline points={`0,${h} ${pts} ${W},${h}`} style={{ fill: color }} opacity={0.08} stroke="none" />
+      <polyline points={pts} fill="none" style={{ stroke: color }} strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
+      <circle cx={W} cy={y(last)} r={2.5} style={{ fill: color }} vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

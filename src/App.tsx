@@ -6,6 +6,7 @@ import { currentRole, goToRole, type Role } from './lib/role';
 import { careLabel, daysSince } from './lib/format';
 import { Brand } from './components/ui';
 import { useAdoptPatientParam } from './components/RoleSwitch';
+import { ThemeSwitch } from './components/ThemeSwitch';
 import { PatientView } from './patient/PatientView';
 import { NurseDashboard } from './nurse/NurseDashboard';
 
@@ -24,6 +25,9 @@ export default function App() {
 function Landing() {
   return (
     <div className="landing">
+      <div className="landing__theme">
+        <ThemeSwitch />
+      </div>
       <main className="landing__hero">
         <div className="landing__copy">
           <div className="kicker">Symptom tracking · Early detection · Outcome simulation · Remote monitoring</div>

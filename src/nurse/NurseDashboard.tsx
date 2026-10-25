@@ -10,6 +10,7 @@ import { regionLabel } from '../twin/bodyModel';
 import { PodVitals } from '../components/PodVitals';
 import { Brand, Hex, Panel, SeverityHex, type HexTone } from '../components/ui';
 import { RoleSwitch } from '../components/RoleSwitch';
+import { ThemeSwitch } from '../components/ThemeSwitch';
 import { SbarPanel } from './SbarPanel';
 import { ImpactBar } from './ImpactBar';
 import { AgentChat } from '../agent/AgentChat';
@@ -40,6 +41,7 @@ export function NurseDashboard() {
         <div className="topbar__who">
           <strong>{data.me?.name}</strong>
         </div>
+        <ThemeSwitch />
         {selected && (
           <RoleSwitch to="patient" patientId={selected.id} patientName={selected.name} />
         )}

@@ -4,9 +4,13 @@ import { SpacetimeDBProvider } from 'spacetimedb/react';
 import App from './App.tsx';
 import { DbConnection, ErrorContext } from './module_bindings/index.ts';
 import { currentRole } from './lib/role.ts';
+import { initTheme } from './lib/theme.ts';
 import '@fontsource-variable/google-sans-flex/standard.css';
 import '@fontsource-variable/google-sans-code';
+import '@fontsource/poiret-one';
 import './styles.css';
+
+initTheme();
 
 const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'ws://127.0.0.1:3100';
 const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'twincare';
