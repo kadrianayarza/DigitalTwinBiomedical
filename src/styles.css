@@ -45,8 +45,9 @@
   color-scheme: light;
 }
 
-/* ---------- professional theme: muted slate palette, EHR-style type, Peignot-style brand name ---------- */
-:root[data-theme='professional'] {
+/* ---------- standard theme: muted slate palette, EHR-style type. The bright values above are the
+   Enhanced theme and only apply with data-theme='enhanced'. ---------- */
+:root:not([data-theme='enhanced']) {
   --bg0: #fbfaf7;
   --bg1: #eeede8;
   --glass: rgba(255, 255, 255, 0.78);
