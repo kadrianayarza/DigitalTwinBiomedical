@@ -39,6 +39,7 @@ import ApproveSbarReducer from "./approve_sbar_reducer";
 import CreatePatientReducer from "./create_patient_reducer";
 import DeleteSymptomReducer from "./delete_symptom_reducer";
 import EscalateAlertReducer from "./escalate_alert_reducer";
+import LoadExampleCheckInsReducer from "./load_example_check_ins_reducer";
 import LogSymptomReducer from "./log_symptom_reducer";
 import RegenerateSbarReducer from "./regenerate_sbar_reducer";
 import RequestTwinReducer from "./request_twin_reducer";
@@ -220,6 +221,7 @@ const reducersSchema = __reducers(
   __reducerSchema("create_patient", CreatePatientReducer),
   __reducerSchema("delete_symptom", DeleteSymptomReducer),
   __reducerSchema("escalate_alert", EscalateAlertReducer),
+  __reducerSchema("load_example_check_ins", LoadExampleCheckInsReducer),
   __reducerSchema("log_symptom", LogSymptomReducer),
   __reducerSchema("regenerate_sbar", RegenerateSbarReducer),
   __reducerSchema("request_twin", RequestTwinReducer),

@@ -231,6 +231,7 @@ function PatientDetail({
                             .filter(Boolean)
                             .join(' · ')}
                         </span>
+                        {s.notes && <span className="list__note">“{s.notes}”</span>}
                         {(s.chestPain || s.shortnessOfBreath) && (
                           <span className="list__danger">Chest pain or breathing trouble reported</span>
                         )}

@@ -13,9 +13,11 @@ Prerequisites: Node 22+, [SpacetimeDB CLI](https://spacetimedb.com/install) 2.13
 spacetime start --listen-addr 127.0.0.1:3100
 spacetime server add twinlocal --url http://127.0.0.1:3100 --no-fingerprint   # once
 
-# 2. Publish the module (seeds 5 demo patients and starts the simulated Twin Pod)
+# 2. Publish the module (seeds 6 demo patients with example check-ins and starts the simulated Twin Pod)
 npm install && (cd spacetimedb && npm install)
 spacetime publish twincare --server twinlocal --module-path spacetimedb --yes
+# Databases published before the examples existed: fill in check-ins for patients that have none
+spacetime call --server twinlocal twincare load_example_check_ins
 
 # Optional: real Claude drafts, DeepSeek (Bitdeer) SBAR uncertainties, and photo-to-3D twins via Meshy.
 # Supply these as server-side shell variables, never VITE_* variables.

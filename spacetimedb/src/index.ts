@@ -8,6 +8,7 @@ import {
 } from 'spacetimedb/server';
 import { ScheduleAt, TimeDuration, Timestamp, type Identity } from 'spacetimedb';
 import { MeshyError, pollMeshyTask, submitMeshyTask, type MeshyFetch } from './meshy';
+import { EXAMPLE_CHECK_INS } from './examples';
 import {
   BITDEER_CHAT_URL,
   DEFAULT_UNCERTAINTY_MODEL,
@@ -428,6 +429,51 @@ function seedPatients(ctx: Ctx) {
   }
 }
 
+/** Adds the example history to seeded patients that have no check-ins yet. Runs no alert rules. */
+function seedCheckIns(ctx: Ctx) {
+  const now = ctx.timestamp.microsSinceUnixEpoch;
+  for (const p of ctx.db.patient.iter()) {
+    const examples = EXAMPLE_CHECK_INS[p.name];
+    if (!examples || [...ctx.db.symptomEntry.patientId.filter(p.id)].length > 0) continue;
+    for (const ex of examples) {
+      const at = new Timestamp(now - BigInt(ex.minutesAgo) * 60_000_000n);
+      const [x, y, z] = ex.point;
+      ctx.db.symptomEntry.insert({
+        id: 0n,
+        patientId: p.id,
+        region: ex.region,
+        x,
+        y,
+        z,
+        onset: ex.onset,
+        provocation: ex.provocation,
+        quality: ex.quality,
+        radiation: ex.radiation,
+        severity: ex.severity,
+        timing: ex.timing,
+        swelling: !!ex.swelling,
+        warmth: !!ex.warmth,
+        redness: !!ex.redness,
+        shortnessOfBreath: false,
+        chestPain: false,
+        bodyTempC: ex.bodyTempC ?? 0,
+        notes: ex.notes,
+        source: 'tap',
+        createdBy: ctx.databaseIdentity,
+        createdAt: at,
+      });
+      ctx.db.auditEvent.insert({
+        id: 0n,
+        patientId: p.id,
+        actorName: p.name,
+        action: 'symptom_logged',
+        detail: `${regionText(ex.region)} · ${ex.quality || 'pain'} ${ex.severity}/10 (tap)`,
+        ts: at,
+      });
+    }
+  }
+}
+
 function clearClinicalData(ctx: Ctx) {
   for (const r of ctx.db.symptomEntry.iter()) ctx.db.symptomEntry.id.delete(r.id);
   for (const r of ctx.db.vitalSign.iter()) ctx.db.vitalSign.id.delete(r.id);
@@ -444,6 +490,7 @@ function clearClinicalData(ctx: Ctx) {
 
 export const init = spacetimedb.init(ctx => {
   seedPatients(ctx);
+  seedCheckIns(ctx);
   ensureSimTimer(ctx);
 });
 
@@ -843,6 +890,12 @@ export const resetDemo = spacetimedb.reducer(ctx => {
       steps: 0,
     });
   }
+  seedCheckIns(ctx);
+});
+
+/** Fills in the example history on databases published before it existed. */
+export const loadExampleCheckIns = spacetimedb.reducer(ctx => {
+  seedCheckIns(ctx);
 });
 
 export const simTick = spacetimedb.reducer(

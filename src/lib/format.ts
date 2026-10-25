@@ -32,7 +32,11 @@ export function timeAgo(t: Timestamp, now = Date.now()) {
 }
 
 export function clock(t: Timestamp) {
-  return new Date(tsMs(t)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const d = new Date(tsMs(t));
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString()
+    ? time
+    : `${d.toLocaleDateString([], { weekday: 'short' })} ${time}`;
 }
 
 export function duration(ms: number) {
