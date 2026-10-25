@@ -42,13 +42,13 @@ export function SbarPanel({ alert, report }: Props) {
   const approved = report?.status === 'approved';
   const isAi = report && report.model && report.model !== 'template';
 
-  const claude = pending
+  const ai = pending
     ? { state: 'wait', value: 'Drafting' }
     : alert.raisedBy === 'rules+claude'
       ? { state: 'alarm', value: `Raised to ${PRIORITY_LABEL[alert.priority] ?? alert.priority}` }
       : isAi
         ? { state: 'ok', value: `Suggests ${PRIORITY_LABEL[report!.suggestedPriority] ?? 'no change'}` }
-        : { state: 'off', value: 'Offline · template' };
+        : { state: 'off', value: 'Template' };
   const nurse = approved
     ? { state: 'ok', value: 'Approved' }
     : alert.status === 'open'
@@ -72,9 +72,9 @@ export function SbarPanel({ alert, report }: Props) {
             {codes.length} {codes.length === 1 ? 'rule' : 'rules'} fired
           </span>
         </div>
-        <div className={`triad__unit triad__unit--${claude.state}`}>
-          <span className="triad__name">Claude</span>
-          <span className="triad__val">{claude.value}</span>
+        <div className={`triad__unit triad__unit--${ai.state}`}>
+          <span className="triad__name">AI</span>
+          <span className="triad__val">{ai.value}</span>
         </div>
         <div className={`triad__unit triad__unit--${nurse.state}`}>
           <span className="triad__name">Nurse</span>
@@ -119,7 +119,7 @@ export function SbarPanel({ alert, report }: Props) {
             </span>
           ) : (
             <span className={`tag ${isAi ? 'tag--ai' : ''}`}>
-              {isAi ? `AI draft · ${report!.model}` : 'Template draft'} · needs approval
+              {isAi ? 'AI draft' : 'Template draft'} · needs approval
             </span>
           )}
         </div>

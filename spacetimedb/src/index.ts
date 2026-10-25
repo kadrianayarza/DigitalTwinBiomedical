@@ -876,6 +876,8 @@ type TriageInput = {
   alertPriority: string;
   payload: string;
   fallback: TriageResult;
+  /** Left out of the payload; the template draft still names the patient. */
+  patientName: string;
 };
 
 type TriageResult = {
@@ -969,10 +971,10 @@ function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
       ? `Most recent report: ${latest.quality || 'pain'} at ${latest.region}, ${latest.severity}/10.`
       : 'Flag raised from pod vitals; no recent symptom report.',
     recommendation: 'Nurse to review and contact patient.',
-    uncertainties: ['Template draft: Claude was not called (no API key configured or the call failed).'],
+    uncertainties: ['Template draft: the AI draft was not available.'],
     questions_for_patient: [],
   };
-  return { sbarId, alertPriority: a.priority, payload, fallback };
+  return { sbarId, alertPriority: a.priority, payload, fallback, patientName: p.name };
 }
 
 export const runSbarJob = spacetimedb.procedure(
@@ -1034,7 +1036,7 @@ export const runSbarJob = spacetimedb.procedure(
         console.error(`Claude triage failed: ${String(e)}`);
         result = {
           ...input.fallback,
-          uncertainties: [`Claude call failed (${String(e).slice(0, 120)}); showing template draft.`],
+          uncertainties: ['The AI draft failed, so this is the template draft.'],
         };
         status = 'error';
       }
@@ -1042,13 +1044,19 @@ export const runSbarJob = spacetimedb.procedure(
 
     // A second model (DeepSeek on Bitdeer) reviews the draft and lists its uncertainties.
     const bitdeerKey = ctx.env.BITDEER_API_KEY?.trim();
+    const anonymize = (text: string) => (input.patientName ? text.split(input.patientName).join('The patient') : text);
     if (bitdeerKey) {
       try {
         const res = ctx.http.fetch(BITDEER_CHAT_URL, {
           method: 'POST',
           headers: { authorization: `Bearer ${bitdeerKey}`, 'content-type': 'application/json' },
           body: JSON.stringify(
-            uncertaintyRequestBody(ctx.env.BITDEER_MODEL || DEFAULT_UNCERTAINTY_MODEL, input.payload, result)
+            uncertaintyRequestBody(ctx.env.BITDEER_MODEL || DEFAULT_UNCERTAINTY_MODEL, input.payload, {
+              situation: anonymize(result.situation),
+              background: anonymize(result.background),
+              assessment: anonymize(result.assessment),
+              recommendation: anonymize(result.recommendation),
+            })
           ),
           timeout: TimeDuration.fromMillis(30_000),
         });
@@ -1057,7 +1065,7 @@ export const runSbarJob = spacetimedb.procedure(
         const body = JSON.parse(text) as { choices?: Array<{ message?: { content?: string } }> };
         const list = parseUncertainties(body.choices?.[0]?.message?.content ?? '');
         if (!list) throw new Error('No uncertainties in the reply');
-        // Keep the note that the Claude call failed; the template's "not called" note is replaced.
+        // Keep the note that the AI draft failed; the template's "not available" note is replaced.
         result = { ...result, uncertainties: status === 'error' ? [...result.uncertainties, ...list] : list };
       } catch (e) {
         console.error(`Uncertainty review failed: ${String(e)}`);
@@ -1100,9 +1108,9 @@ export const runSbarJob = spacetimedb.procedure(
       audit(
         tx,
         report.patientId,
-        modelUsed === 'template' ? 'system' : 'Claude',
+        modelUsed === 'template' ? 'system' : 'AI',
         'sbar_drafted',
-        `${modelUsed} · suggested ${result.priority}`
+        `${modelUsed === 'template' ? 'template' : 'AI draft'} · suggested ${result.priority}`
       );
     });
     return {};

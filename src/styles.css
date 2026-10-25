@@ -1773,7 +1773,7 @@ textarea:disabled {
   text-align: right;
 }
 
-/* Three-unit safety readout: rules floor, Claude, nurse sign-off. */
+/* Three-unit safety readout: rules floor, AI, nurse sign-off. */
 .triad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
