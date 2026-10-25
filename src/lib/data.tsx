@@ -4,7 +4,9 @@ import { tables } from '../module_bindings';
 import type { Identity } from 'spacetimedb';
 
 function useAllTables() {
-  const [patients, patientsReady] = useTable(tables.patient);
+  const [patientRows, patientsReady] = useTable(tables.patient);
+  // Roster order is the seed order (Kadrian, Isak, ...) in every list.
+  const patients = useMemo(() => [...patientRows].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)), [patientRows]);
   const [profiles] = useTable(tables.userProfile);
   const [symptoms] = useTable(tables.symptomEntry);
   const [vitals] = useTable(tables.vitalSign);

@@ -28,17 +28,7 @@ export function NurseDashboard() {
   const [selectedPin, setSelectedPin] = useState<string | undefined>();
   const updatePointer = useReducer(reducers.updatePointer);
 
-  const census = useMemo(
-    () =>
-      [...data.patients]
-        .map(p => ({ p, alert: activeAlertFor(data, p.id) }))
-        .sort((a, b) => {
-          const ra = a.alert ? a.alert.rank + (a.alert.status === 'open' ? 0.5 : 0) : -1;
-          const rb = b.alert ? b.alert.rank + (b.alert.status === 'open' ? 0.5 : 0) : -1;
-          return rb - ra || a.p.name.localeCompare(b.p.name);
-        }),
-    [data]
-  );
+  const census = useMemo(() => data.patients.map(p => ({ p, alert: activeAlertFor(data, p.id) })), [data]);
 
   const selected = data.patients.find(p => p.id === selectedId) ?? census[0]?.p;
 
