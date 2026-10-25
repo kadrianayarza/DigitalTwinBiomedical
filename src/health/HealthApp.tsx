@@ -63,7 +63,9 @@ export function HealthApp({ patient, viewer, onClose, initial }: { patient: Pati
     return () => window.removeEventListener('keydown', onKey);
   }, [stack.length, onClose]);
 
-  useEffect(() => main.current?.scrollTo({ top: 0 }), [stack]);
+  useEffect(() => {
+    main.current?.scrollTo({ top: 0 });
+  }, [stack]);
 
   const ctx: HealthCtx = {
     patient,
