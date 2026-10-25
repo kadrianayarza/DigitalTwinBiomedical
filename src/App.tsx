@@ -2,19 +2,20 @@ import { Suspense, lazy, useState } from 'react';
 import { useReducer } from 'spacetimedb/react';
 import { reducers } from './module_bindings';
 import { DataProvider, useData } from './lib/data';
-import { currentRole, goToRole, type Role } from './lib/role';
+import { currentRole, goToLogin, onLoginPage, type Role } from './lib/role';
 import { careLabel, daysSince } from './lib/format';
 import { Brand } from './components/ui';
 import { useAdoptPatientParam } from './components/RoleSwitch';
 import { ThemeSwitch } from './components/ThemeSwitch';
 import { PatientView } from './patient/PatientView';
 import { NurseDashboard } from './nurse/NurseDashboard';
+import { Login } from './Login';
 
 const LandingTwin = lazy(() => import('./twin/LandingTwin'));
 
 export default function App() {
   const role = currentRole();
-  if (!role) return <Landing />;
+  if (!role) return onLoginPage() ? <Login /> : <Landing />;
   return (
     <DataProvider>
       <RoleGate role={role} />
@@ -25,8 +26,11 @@ export default function App() {
 function Landing() {
   return (
     <div className="landing">
-      <div className="landing__theme">
+      <div className="landing__actions">
         <ThemeSwitch />
+        <button className="btn btn--primary landing__login" onClick={goToLogin}>
+          Log in
+        </button>
       </div>
       <main className="landing__hero">
         <div className="landing__copy">
@@ -40,18 +44,6 @@ function Landing() {
             early, and see how their recovery can unfold, while their nurse monitors remotely and approves every
             AI-drafted handoff.
           </p>
-          <div className="landing__choices">
-            <button className="choice" onClick={() => goToRole('patient')}>
-              <span className="choice__code">Access 01</span>
-              <span className="choice__title">I'm a patient</span>
-              <span className="choice__desc">Check in from home</span>
-            </button>
-            <button className="choice" onClick={() => goToRole('nurse')}>
-              <span className="choice__code">Access 02</span>
-              <span className="choice__title">I'm a medical professional</span>
-              <span className="choice__desc">Open the follow-up console</span>
-            </button>
-          </div>
         </div>
         <div className="landing__twin" aria-hidden>
           <Suspense fallback={null}>
@@ -93,12 +85,12 @@ function Onboarding({ role }: { role: Role }) {
   return (
     <div className="landing">
       <main className="landing__inner landing__inner--narrow">
-        <button className="btn btn--ghost back" onClick={() => goToRole(null)}>
+        <button className="btn btn--ghost back" onClick={goToLogin}>
           ← Back
         </button>
         {role === 'nurse' ? (
           <>
-            <div className="kicker">Access 02 · Nurse</div>
+            <div className="kicker">Demo 02 · Nurse</div>
             <h1 className="titlecard titlecard--sm">Sign in</h1>
             <form
               className="signin"
@@ -118,7 +110,7 @@ function Onboarding({ role }: { role: Role }) {
           </>
         ) : (
           <>
-            <div className="kicker">Access 01 · Patient</div>
+            <div className="kicker">Demo 01 · Patient</div>
             <h1 className="titlecard titlecard--sm">Who's checking in?</h1>
             <div className="landing__choices landing__choices--list">
               {data.patients.map(p => (

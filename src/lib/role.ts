@@ -5,6 +5,14 @@ export function currentRole(): Role | null {
   return r === 'patient' || r === 'nurse' ? r : null;
 }
 
+export function onLoginPage(): boolean {
+  return new URLSearchParams(window.location.search).get('view') === 'login';
+}
+
+export function goToLogin() {
+  goToRole(null, { view: 'login' });
+}
+
 export function goToRole(role: Role | null, extra: Record<string, string> = {}) {
   const params = new URLSearchParams();
   if (role) params.set('role', role);
