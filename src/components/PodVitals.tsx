@@ -1,11 +1,12 @@
+import type { ReactNode } from 'react';
 import type { VitalSign } from '../module_bindings/types';
 import { timeAgo } from '../lib/format';
 import { Sparkline } from './Sparkline';
 import { Panel } from './ui';
 
-type Props = { vitals: readonly VitalSign[]; detailed?: boolean };
+type Props = { vitals: readonly VitalSign[]; detailed?: boolean; title?: ReactNode };
 
-export function PodVitals({ vitals, detailed }: Props) {
+export function PodVitals({ vitals, detailed, title = 'Twin Pod' }: Props) {
   const last = vitals[vitals.length - 1];
   const series = (f: (v: VitalSign) => number) => vitals.slice(-60).map(f);
   const fmt = (n: number | undefined, digits = 0) => (n === undefined ? '–' : n.toFixed(digits));
@@ -75,7 +76,7 @@ export function PodVitals({ vitals, detailed }: Props) {
 
   return (
     <Panel
-      title="Twin Pod"
+      title={title}
       code={<span className="tag">Simulated data</span>}
       className={`pod ${detailed ? 'pod--detailed' : ''}`}
     >

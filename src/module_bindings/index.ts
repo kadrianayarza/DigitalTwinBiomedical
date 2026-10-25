@@ -35,13 +35,21 @@ import {
 
 // Import all reducer arg schemas
 import AckAlertReducer from "./ack_alert_reducer";
+import AddMedicationReducer from "./add_medication_reducer";
 import ApproveSbarReducer from "./approve_sbar_reducer";
 import CreatePatientReducer from "./create_patient_reducer";
+import DeleteHealthSampleReducer from "./delete_health_sample_reducer";
 import DeleteSymptomReducer from "./delete_symptom_reducer";
 import EscalateAlertReducer from "./escalate_alert_reducer";
+import ImportHealthSamplesReducer from "./import_health_samples_reducer";
 import LoadExampleCheckInsReducer from "./load_example_check_ins_reducer";
+import LoadExampleHealthReducer from "./load_example_health_reducer";
+import LogHealthSampleReducer from "./log_health_sample_reducer";
 import LogSymptomReducer from "./log_symptom_reducer";
+import PairDemoDeviceReducer from "./pair_demo_device_reducer";
 import RegenerateSbarReducer from "./regenerate_sbar_reducer";
+import RemoveHealthDeviceReducer from "./remove_health_device_reducer";
+import RemoveMedicationReducer from "./remove_medication_reducer";
 import RequestTwinReducer from "./request_twin_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
 import ResolveAlertReducer from "./resolve_alert_reducer";
@@ -55,6 +63,9 @@ import UpdatePointerReducer from "./update_pointer_reducer";
 // Import all table schema definitions
 import AlertRow from "./alert_table";
 import AuditEventRow from "./audit_event_table";
+import HealthDeviceRow from "./health_device_table";
+import HealthSampleRow from "./health_sample_table";
+import MedicationRow from "./medication_table";
 import PatientRow from "./patient_table";
 import PresenceRow from "./presence_table";
 import SbarReportRow from "./sbar_report_table";
@@ -97,6 +108,48 @@ const tablesSchema = __schema({
       { name: 'audit_event_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, AuditEventRow),
+  healthDevice: __table({
+    name: 'health_device',
+    indexes: [
+      { accessor: 'id', name: 'health_device_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'health_device_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'health_device_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, HealthDeviceRow),
+  healthSample: __table({
+    name: 'health_sample',
+    indexes: [
+      { accessor: 'id', name: 'health_sample_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'health_sample_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'health_sample_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, HealthSampleRow),
+  medication: __table({
+    name: 'medication',
+    indexes: [
+      { accessor: 'id', name: 'medication_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'patientId', name: 'medication_patient_id_idx_btree', algorithm: 'btree', columns: [
+        'patientId',
+      ] },
+    ],
+    constraints: [
+      { name: 'medication_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, MedicationRow),
   patient: __table({
     name: 'patient',
     indexes: [
@@ -217,13 +270,21 @@ const tablesSchema = __schema({
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("ack_alert", AckAlertReducer),
+  __reducerSchema("add_medication", AddMedicationReducer),
   __reducerSchema("approve_sbar", ApproveSbarReducer),
   __reducerSchema("create_patient", CreatePatientReducer),
+  __reducerSchema("delete_health_sample", DeleteHealthSampleReducer),
   __reducerSchema("delete_symptom", DeleteSymptomReducer),
   __reducerSchema("escalate_alert", EscalateAlertReducer),
+  __reducerSchema("import_health_samples", ImportHealthSamplesReducer),
   __reducerSchema("load_example_check_ins", LoadExampleCheckInsReducer),
+  __reducerSchema("load_example_health", LoadExampleHealthReducer),
+  __reducerSchema("log_health_sample", LogHealthSampleReducer),
   __reducerSchema("log_symptom", LogSymptomReducer),
+  __reducerSchema("pair_demo_device", PairDemoDeviceReducer),
   __reducerSchema("regenerate_sbar", RegenerateSbarReducer),
+  __reducerSchema("remove_health_device", RemoveHealthDeviceReducer),
+  __reducerSchema("remove_medication", RemoveMedicationReducer),
   __reducerSchema("request_twin", RequestTwinReducer),
   __reducerSchema("reset_demo", ResetDemoReducer),
   __reducerSchema("resolve_alert", ResolveAlertReducer),

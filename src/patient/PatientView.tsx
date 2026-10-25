@@ -17,6 +17,12 @@ import { AgentChat } from '../agent/AgentChat';
 import { patientAgentContext } from '../agent/context';
 import { SymptomSheet, type SymptomDraft } from './SymptomSheet';
 import { TwinPhotoCard } from './TwinPhotoCard';
+import { HealthApp, type Page } from '../health/HealthApp';
+import { HealthButton } from '../health/HealthButton';
+import { HealthGlance } from '../health/HealthGlance';
+
+/** Returning from Google sign-in lands on Sources so the sync can finish. */
+const returningFromGoogle = () => new URLSearchParams(window.location.search).get('health')?.startsWith('google-') ?? false;
 
 export function PatientView({ patient }: { patient: Patient }) {
   const data = useData();
@@ -24,6 +30,7 @@ export function PatientView({ patient }: { patient: Patient }) {
   const updatePointer = useReducer(reducers.updatePointer);
   const [pending, setPending] = useState<{ region: string; point: [number, number, number] } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [health, setHealth] = useState<Page | null>(() => (returningFromGoogle() ? { kind: 'sources' } : null));
 
   // Keep the full body clear of the header, banner and hint that overlay the stage.
   const stageRef = useRef<HTMLElement>(null);
@@ -122,6 +129,7 @@ export function PatientView({ patient }: { patient: Patient }) {
             Day {String(day).padStart(2, '0')} · {careLabel(patient)}
           </span>
         </div>
+        <HealthButton onClick={() => setHealth({ kind: 'summary' })} />
         <ThemeSwitch />
         <PatientSwitch currentId={patient.id} />
         <RoleSwitch to="nurse" />
@@ -195,6 +203,7 @@ export function PatientView({ patient }: { patient: Patient }) {
           )}
         </Panel>
         <TwinPhotoCard patient={patient} />
+        <HealthGlance patient={patient} variant="patient" onOpen={p => setHealth(p ?? { kind: 'summary' })} />
       </aside>
 
       <aside className="patient__right">
@@ -212,6 +221,7 @@ export function PatientView({ patient }: { patient: Patient }) {
         buildContext={() => patientAgentContext(data, patient)}
       />
 
+      {health && <HealthApp key={String(patient.id)} patient={patient} viewer="patient" initial={health} onClose={() => setHealth(null)} />}
       {pending && <SymptomSheet region={pending.region} onCancel={() => setPending(null)} onSubmit={submit} />}
       {toast && <div className="toast">{toast}</div>}
     </div>

@@ -34,6 +34,52 @@ export const AuditEvent = __t.object("AuditEvent", {
 });
 export type AuditEvent = __Infer<typeof AuditEvent>;
 
+export const HealthDevice = __t.object("HealthDevice", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  kind: __t.string(),
+  name: __t.string(),
+  source: __t.string(),
+  demo: __t.bool(),
+  connectedAt: __t.timestamp(),
+  lastSyncAt: __t.timestamp(),
+});
+export type HealthDevice = __Infer<typeof HealthDevice>;
+
+export const HealthSample = __t.object("HealthSample", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  metric: __t.string(),
+  value: __t.f64(),
+  label: __t.string(),
+  startAt: __t.timestamp(),
+  endAt: __t.timestamp(),
+  source: __t.string(),
+  device: __t.string(),
+  createdBy: __t.identity(),
+  createdAt: __t.timestamp(),
+});
+export type HealthSample = __Infer<typeof HealthSample>;
+
+export const HealthSampleInput = __t.object("HealthSampleInput", {
+  metric: __t.string(),
+  value: __t.f64(),
+  label: __t.string(),
+  startAt: __t.timestamp(),
+  endAt: __t.timestamp(),
+});
+export type HealthSampleInput = __Infer<typeof HealthSampleInput>;
+
+export const Medication = __t.object("Medication", {
+  id: __t.u64(),
+  patientId: __t.u64(),
+  name: __t.string(),
+  dose: __t.string(),
+  schedule: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type Medication = __Infer<typeof Medication>;
+
 export const Patient = __t.object("Patient", {
   id: __t.u64(),
   name: __t.string(),

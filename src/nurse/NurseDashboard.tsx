@@ -15,6 +15,8 @@ import { SbarPanel } from './SbarPanel';
 import { ImpactBar } from './ImpactBar';
 import { AgentChat } from '../agent/AgentChat';
 import { nurseAgentContext } from '../agent/context';
+import { HealthApp, type Page } from '../health/HealthApp';
+import { HealthGlance } from '../health/HealthGlance';
 
 const PRIORITY_TONE: Record<string, HexTone> = {
   emergency: 'alarm',
@@ -156,6 +158,22 @@ function PatientDetail({
     .slice(0, 25);
   const sim = data.sims.find(s => s.patientId === patientId);
   const top = alerts[0];
+  const [vitalsTab, setVitalsTab] = useState<'pod' | 'home'>('pod');
+  const [health, setHealth] = useState<Page | null>(null);
+  const tabs = (
+    <span className="ptabs" role="tablist">
+      {(
+        [
+          ['pod', 'Twin Pod'],
+          ['home', 'Home & wearables'],
+        ] as const
+      ).map(([id, label]) => (
+        <button key={id} role="tab" aria-selected={vitalsTab === id} className={`ptabs__tab ${vitalsTab === id ? 'ptabs__tab--on' : ''}`} onClick={() => setVitalsTab(id)}>
+          {label}
+        </button>
+      ))}
+    </span>
+  );
 
   const pins: TwinPin[] = symptoms.slice(0, 12).map(s => ({
     id: String(s.id),
@@ -247,7 +265,12 @@ function PatientDetail({
           </Panel>
         </div>
 
-        <PodVitals vitals={vitals} detailed />
+        {vitalsTab === 'pod' ? (
+          <PodVitals vitals={vitals} detailed title={tabs} />
+        ) : (
+          <HealthGlance patient={patient} variant="nurse" title={tabs} onOpen={p => setHealth(p ?? { kind: 'summary' })} />
+        )}
+        {health && <HealthApp key={String(patientId)} patient={patient} viewer="nurse" initial={health} onClose={() => setHealth(null)} />}
       </section>
 
       <aside className="rail">

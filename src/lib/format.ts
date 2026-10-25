@@ -65,6 +65,11 @@ export const REASON_LABEL: Record<string, string> = {
   TACHYPNEA: 'Respiratory rate > 24',
   HYPOTENSION: 'Systolic BP < 90',
   HYPERTENSION: 'Systolic BP ≥ 180',
+  WEIGHT_GAIN: 'Weight up 2 lb (0.9 kg) in a day or 5 lb (2.3 kg) in a week',
+  RESTING_HR_RISE: 'Resting heart rate 10+ bpm above the past week',
+  WEARABLE_LOW_SPO2: 'Watch blood oxygen below 90%',
+  IRREGULAR_RHYTHM: 'Irregular rhythm notification from the watch',
+  GLUCOSE_OUT_OF_RANGE: 'Blood glucose below 70 or above 300 mg/dL',
 };
 
 export const SCENARIO_LABEL: Record<string, string> = {

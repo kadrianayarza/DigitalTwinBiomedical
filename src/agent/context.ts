@@ -2,8 +2,24 @@ import type { Patient } from '../module_bindings/types';
 import { activeAlertFor, symptomsFor, vitalsFor, type TwinData } from '../lib/data';
 import { PRIORITY_LABEL, REASON_LABEL, SCENARIO_LABEL, careLabel, daysSince, timeAgo } from '../lib/format';
 import { regionLabel } from '../twin/bodyModel';
+import { healthDigest } from '../../spacetimedb/src/health';
+import { wearableFlags } from '../health/HealthGlance';
+import { healthFor } from '../health/model';
 
 const round = (n: number, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
+
+/** Wearable, home-device and self-logged data: a week of daily values, devices, medications and flags. */
+function homeData(data: TwinData, patientId: bigint) {
+  const h = healthFor(data, patientId);
+  if (h.byMetric.size === 0 && h.medications.length === 0) return null;
+  const points = [...h.byMetric.values()].flat().map(s => ({ metric: s.metric, value: s.value, label: s.label, at: s.at * 1000 }));
+  return {
+    devices: h.devices.map(d => `${d.name} (${d.demo ? 'demo' : d.source.replace('_', ' ')}, synced ${timeAgo(d.lastSyncAt)} ago)`),
+    medications: h.medications.map(m => `${m.name}${m.dose ? `, ${m.dose}` : ''}, ${m.schedule.toLowerCase()}`),
+    wearable_flags: wearableFlags(h).map(f => REASON_LABEL[f.code] ?? f.code),
+    ...healthDigest(points, Date.now() * 1000),
+  };
+}
 
 function vitalsSummary(data: TwinData, patientId: bigint) {
   const all = vitalsFor(data, patientId);
@@ -73,6 +89,7 @@ export function patientAgentContext(data: TwinData, patient: Patient) {
       has_personal_3d_scan: !!patient.twinUrl,
     },
     pod_vitals: vitalsSummary(data, patient.id),
+    wearables_and_home_logs: homeData(data, patient.id),
     recent_check_ins_newest_first: checkIns(data, patient.id, 6),
     care_team_flag: alert ? { priority: alert.priority, status: alert.status, raised: alert.raised } : null,
   };
@@ -106,6 +123,7 @@ export function nurseAgentContext(data: TwinData, selected: Patient | undefined)
       condition: careLabel(selected),
       monitoring_day: daysSince(selected.surgeryAt),
       pod_vitals: vitalsSummary(data, selected.id),
+      wearables_and_home_logs: homeData(data, selected.id),
       recent_check_ins_newest_first: checkIns(data, selected.id, 8),
       active_alert: alertSummary(data, selected.id),
       latest_sbar: report

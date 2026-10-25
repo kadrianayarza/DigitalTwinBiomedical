@@ -10,6 +10,16 @@ import { ScheduleAt, TimeDuration, Timestamp, type Identity } from 'spacetimedb'
 import { MeshyError, pollMeshyTask, submitMeshyTask, type MeshyFetch } from './meshy';
 import { EXAMPLE_CHECK_INS } from './examples';
 import {
+  DEMO_HEALTH,
+  DEVICE_KINDS,
+  METRIC,
+  healthDigest,
+  healthRules,
+  pairedDeviceHistory,
+  type DemoSample,
+  type HealthPoint,
+} from './health';
+import {
   BITDEER_CHAT_URL,
   DEFAULT_UNCERTAINTY_MODEL,
   REASON_LABEL,
@@ -235,8 +245,63 @@ const twinStatus = table(
   }
 );
 
+/** One reading or daily total from a wearable, an import, or a manual log (see health.ts METRICS). */
+const healthSample = table(
+  { name: 'health_sample', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    patientId: t.u64().index('btree'),
+    metric: t.string(),
+    value: t.f64(), // canonical unit from the catalog
+    label: t.string(), // medication name, workout type, mood word, ECG result
+    startAt: t.timestamp(),
+    endAt: t.timestamp(),
+    source: t.string(), // apple_health | google_health | manual
+    device: t.string(),
+    createdBy: t.identity(),
+    createdAt: t.timestamp(),
+  }
+);
+
+const healthDevice = table(
+  { name: 'health_device', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    patientId: t.u64().index('btree'),
+    kind: t.string(), // apple_watch | fitbit | pixel_watch | smart_scale | bp_cuff | glucose_monitor | apple_health | google_health
+    name: t.string(),
+    source: t.string(),
+    demo: t.bool(),
+    connectedAt: t.timestamp(),
+    lastSyncAt: t.timestamp(),
+  }
+);
+
+const medication = table(
+  { name: 'medication', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    patientId: t.u64().index('btree'),
+    name: t.string(),
+    dose: t.string(),
+    schedule: t.string(), // Once daily | Twice daily | Three times daily | As needed
+    createdAt: t.timestamp(),
+  }
+);
+
+const HealthSampleInput = t.object('HealthSampleInput', {
+  metric: t.string(),
+  value: t.f64(),
+  label: t.string(),
+  startAt: t.timestamp(),
+  endAt: t.timestamp(),
+});
+
 const spacetimedb = schema(
   {
+    healthSample,
+    healthDevice,
+    medication,
     userProfile,
     patient,
     simState,
@@ -474,6 +539,83 @@ function seedCheckIns(ctx: Ctx) {
   }
 }
 
+function insertDemoSamples(ctx: Ctx, patientId: bigint, samples: DemoSample[]) {
+  const now = ctx.timestamp.microsSinceUnixEpoch;
+  for (const s of samples) {
+    const at = new Timestamp(now - BigInt(Math.round(s.minutesAgo)) * 60_000_000n);
+    ctx.db.healthSample.insert({
+      id: 0n,
+      patientId,
+      metric: s.metric,
+      value: s.value,
+      label: s.label,
+      startAt: at,
+      endAt: at,
+      source: s.source,
+      device: s.device,
+      createdBy: ctx.databaseIdentity,
+      createdAt: ctx.timestamp,
+    });
+  }
+}
+
+/** Four weeks of wearable history, paired demo devices and medication lists for seeded patients. */
+function seedHealth(ctx: Ctx) {
+  const rand = () => ctx.random();
+  for (const p of ctx.db.patient.iter()) {
+    const profile = DEMO_HEALTH[p.name];
+    if (!profile) continue;
+    if ([...ctx.db.healthSample.patientId.filter(p.id)].length > 0) continue;
+    if ([...ctx.db.healthDevice.patientId.filter(p.id)].length > 0) continue;
+    for (const d of profile.devices) {
+      ctx.db.healthDevice.insert({
+        id: 0n,
+        patientId: p.id,
+        kind: d.kind,
+        name: d.name,
+        source: DEVICE_KINDS[d.kind]?.source ?? 'demo',
+        demo: true,
+        connectedAt: new Timestamp(ctx.timestamp.microsSinceUnixEpoch - 30n * DAY_MICROS),
+        lastSyncAt: new Timestamp(ctx.timestamp.microsSinceUnixEpoch - 20n * 60_000_000n),
+      });
+    }
+    if ([...ctx.db.medication.patientId.filter(p.id)].length === 0) {
+      for (const m of profile.medications) {
+        ctx.db.medication.insert({ id: 0n, patientId: p.id, ...m, createdAt: ctx.timestamp });
+      }
+    }
+    insertDemoSamples(ctx, p.id, profile.history(rand));
+  }
+}
+
+const RULE_METRICS = new Set(['weight', 'resting_heart_rate', 'blood_oxygen', 'irregular_rhythm', 'blood_glucose']);
+
+function healthPoints(ctx: Ctx, patientId: bigint, only?: Set<string>): HealthPoint[] {
+  return [...ctx.db.healthSample.patientId.filter(patientId)]
+    .filter(s => !only || only.has(s.metric))
+    .map(s => ({ metric: s.metric, value: s.value, label: s.label, at: Number(s.startAt.microsSinceUnixEpoch) }));
+}
+
+function runHealthRules(ctx: Ctx, patientId: bigint) {
+  raiseAlerts(ctx, patientId, healthRules(healthPoints(ctx, patientId, RULE_METRICS), Number(ctx.timestamp.microsSinceUnixEpoch)));
+}
+
+function requirePatientAccess(ctx: Ctx, patientId: bigint) {
+  const p = ctx.db.patient.id.find(patientId);
+  if (!p) throw new SenderError('Unknown patient');
+  const me = ctx.db.userProfile.identity.find(ctx.sender);
+  if (me && me.role === 'patient' && me.patientId !== patientId) {
+    throw new SenderError('Patients can only change their own health data');
+  }
+  return p;
+}
+
+function clearHealthData(ctx: Ctx) {
+  for (const r of ctx.db.healthSample.iter()) ctx.db.healthSample.id.delete(r.id);
+  for (const r of ctx.db.healthDevice.iter()) ctx.db.healthDevice.id.delete(r.id);
+  for (const r of ctx.db.medication.iter()) ctx.db.medication.id.delete(r.id);
+}
+
 function clearClinicalData(ctx: Ctx) {
   for (const r of ctx.db.symptomEntry.iter()) ctx.db.symptomEntry.id.delete(r.id);
   for (const r of ctx.db.vitalSign.iter()) ctx.db.vitalSign.id.delete(r.id);
@@ -491,6 +633,7 @@ function clearClinicalData(ctx: Ctx) {
 export const init = spacetimedb.init(ctx => {
   seedPatients(ctx);
   seedCheckIns(ctx);
+  seedHealth(ctx);
   ensureSimTimer(ctx);
 });
 
@@ -882,6 +1025,7 @@ export const setScenario = spacetimedb.reducer(
 
 export const resetDemo = spacetimedb.reducer(ctx => {
   clearClinicalData(ctx);
+  clearHealthData(ctx);
   for (const s of ctx.db.simState.iter()) {
     ctx.db.simState.patientId.update({
       ...s,
@@ -891,11 +1035,184 @@ export const resetDemo = spacetimedb.reducer(ctx => {
     });
   }
   seedCheckIns(ctx);
+  seedHealth(ctx);
 });
 
 /** Fills in the example history on databases published before it existed. */
 export const loadExampleCheckIns = spacetimedb.reducer(ctx => {
   seedCheckIns(ctx);
+});
+
+export const loadExampleHealth = spacetimedb.reducer(ctx => {
+  seedHealth(ctx);
+});
+
+// ---------------------------------------------------------------------------
+// Health tracking: wearables, imports, manual logs, medications
+// ---------------------------------------------------------------------------
+
+const MAX_IMPORT = 4000;
+
+/** Bulk upsert from an Apple Health export or a Google Health sync. Re-syncing replaces matching readings. */
+export const importHealthSamples = spacetimedb.reducer(
+  {
+    patientId: t.u64(),
+    kind: t.string(),
+    device: t.string(),
+    source: t.string(),
+    samples: t.array(HealthSampleInput),
+  },
+  (ctx, { patientId, kind, device, source, samples }) => {
+    const p = requirePatientAccess(ctx, patientId);
+    if (source !== 'apple_health' && source !== 'google_health') throw new SenderError('Unknown source');
+    if (samples.length > MAX_IMPORT) throw new SenderError(`Send at most ${MAX_IMPORT} readings at a time`);
+    const name = device.trim().slice(0, 80) || (source === 'apple_health' ? 'Apple Health' : 'Google Health');
+
+    const existing = new Map<string, bigint>();
+    for (const s of ctx.db.healthSample.patientId.filter(p.id)) {
+      if (s.source === source && s.device === name) existing.set(`${s.metric}|${s.startAt.microsSinceUnixEpoch}|${s.label}`, s.id);
+    }
+    let added = 0;
+    for (const s of samples) {
+      const m = METRIC[s.metric];
+      if (!m || !Number.isFinite(s.value) || s.value < m.min || s.value > m.max) continue;
+      const row = {
+        id: 0n,
+        patientId: p.id,
+        metric: s.metric,
+        value: s.value,
+        label: s.label.slice(0, 80),
+        startAt: s.startAt,
+        endAt: s.endAt,
+        source,
+        device: name,
+        createdBy: ctx.sender,
+        createdAt: ctx.timestamp,
+      };
+      const key = `${s.metric}|${s.startAt.microsSinceUnixEpoch}|${row.label}`;
+      const prior = existing.get(key);
+      if (prior !== undefined) ctx.db.healthSample.id.update({ ...row, id: prior });
+      else {
+        const inserted = ctx.db.healthSample.insert(row);
+        existing.set(key, inserted.id);
+      }
+      added++;
+    }
+
+    const known = [...ctx.db.healthDevice.patientId.filter(p.id)].find(d => d.name === name && d.source === source);
+    if (known) ctx.db.healthDevice.id.update({ ...known, lastSyncAt: ctx.timestamp });
+    else {
+      ctx.db.healthDevice.insert({
+        id: 0n,
+        patientId: p.id,
+        kind,
+        name,
+        source,
+        demo: false,
+        connectedAt: ctx.timestamp,
+        lastSyncAt: ctx.timestamp,
+      });
+    }
+    audit(ctx, p.id, actorName(ctx, ctx.sender), 'health_synced', `${added} readings from ${name}`);
+    runHealthRules(ctx, p.id);
+  }
+);
+
+/** A single reading entered by hand ("Add Data"), a medication dose, a mood or a period day. */
+export const logHealthSample = spacetimedb.reducer(
+  { patientId: t.u64(), metric: t.string(), value: t.f64(), label: t.string(), at: t.timestamp() },
+  (ctx, { patientId, metric, value, label, at }) => {
+    const p = requirePatientAccess(ctx, patientId);
+    const m = METRIC[metric];
+    if (!m || !m.manual) throw new SenderError('This measurement cannot be entered by hand');
+    if (!Number.isFinite(value) || value < m.min || value > m.max) {
+      throw new SenderError(`${m.label} must be between ${m.min} and ${m.max} ${m.unit}`);
+    }
+    const when = at.microsSinceUnixEpoch > ctx.timestamp.microsSinceUnixEpoch ? ctx.timestamp : at;
+    ctx.db.healthSample.insert({
+      id: 0n,
+      patientId: p.id,
+      metric,
+      value,
+      label: label.slice(0, 80),
+      startAt: when,
+      endAt: when,
+      source: 'manual',
+      device: actorName(ctx, ctx.sender) === 'system' ? 'Entered by hand' : `Entered by ${actorName(ctx, ctx.sender)}`,
+      createdBy: ctx.sender,
+      createdAt: ctx.timestamp,
+    });
+    const shown = metric === 'medication' ? `${label}: ${value ? 'taken' : 'skipped'}` : `${m.label} ${Math.round(value * 10) / 10} ${m.unit}`;
+    audit(ctx, p.id, actorName(ctx, ctx.sender), 'health_logged', shown);
+    runHealthRules(ctx, p.id);
+  }
+);
+
+export const deleteHealthSample = spacetimedb.reducer({ id: t.u64() }, (ctx, { id }) => {
+  const s = ctx.db.healthSample.id.find(id);
+  if (!s) return;
+  const me = ctx.db.userProfile.identity.find(ctx.sender);
+  const own = s.createdBy.equals(ctx.sender) || (me?.role === 'patient' && me.patientId === s.patientId);
+  if (!own) requireNurse(ctx);
+  ctx.db.healthSample.id.delete(id);
+});
+
+/** Pairs a simulated device for the demo and backfills four weeks of typical readings. */
+export const pairDemoDevice = spacetimedb.reducer(
+  { patientId: t.u64(), kind: t.string() },
+  (ctx, { patientId, kind }) => {
+    const p = requirePatientAccess(ctx, patientId);
+    const k = DEVICE_KINDS[kind];
+    if (!k) throw new SenderError('Unknown device');
+    const name = `${k.name} (demo)`;
+    if ([...ctx.db.healthDevice.patientId.filter(p.id)].some(d => d.name === name)) return;
+    ctx.db.healthDevice.insert({
+      id: 0n,
+      patientId: p.id,
+      kind,
+      name,
+      source: k.source,
+      demo: true,
+      connectedAt: ctx.timestamp,
+      lastSyncAt: ctx.timestamp,
+    });
+    insertDemoSamples(ctx, p.id, pairedDeviceHistory(kind, name, () => ctx.random()));
+    audit(ctx, p.id, actorName(ctx, ctx.sender), 'device_paired', name);
+  }
+);
+
+/** Disconnects a source and deletes the readings it contributed. */
+export const removeHealthDevice = spacetimedb.reducer({ deviceId: t.u64() }, (ctx, { deviceId }) => {
+  const d = ctx.db.healthDevice.id.find(deviceId);
+  if (!d) return;
+  requirePatientAccess(ctx, d.patientId);
+  for (const s of [...ctx.db.healthSample.patientId.filter(d.patientId)]) {
+    if (s.device === d.name && s.source === d.source) ctx.db.healthSample.id.delete(s.id);
+  }
+  ctx.db.healthDevice.id.delete(d.id);
+  audit(ctx, d.patientId, actorName(ctx, ctx.sender), 'device_removed', d.name);
+});
+
+const SCHEDULES = ['Once daily', 'Twice daily', 'Three times daily', 'As needed'];
+
+export const addMedication = spacetimedb.reducer(
+  { patientId: t.u64(), name: t.string(), dose: t.string(), schedule: t.string() },
+  (ctx, { patientId, name, dose, schedule }) => {
+    const p = requirePatientAccess(ctx, patientId);
+    const clean = name.trim().slice(0, 80);
+    if (!clean) throw new SenderError('Medication name required');
+    if (!SCHEDULES.includes(schedule)) throw new SenderError('Unknown schedule');
+    ctx.db.medication.insert({ id: 0n, patientId: p.id, name: clean, dose: dose.trim().slice(0, 80), schedule, createdAt: ctx.timestamp });
+    audit(ctx, p.id, actorName(ctx, ctx.sender), 'medication_added', `${clean} · ${schedule}`);
+  }
+);
+
+export const removeMedication = spacetimedb.reducer({ id: t.u64() }, (ctx, { id }) => {
+  const m = ctx.db.medication.id.find(id);
+  if (!m) return;
+  requirePatientAccess(ctx, m.patientId);
+  ctx.db.medication.id.delete(id);
+  audit(ctx, m.patientId, actorName(ctx, ctx.sender), 'medication_removed', m.name);
 });
 
 export const simTick = spacetimedb.reducer(
@@ -1008,6 +1325,7 @@ function gatherTriageInput(ctx: Ctx, sbarId: bigint): TriageInput | null {
         spo2_pct: stat(v => v.spo2),
         temperature_c: stat(v => v.tempC),
       },
+      wearables_and_home_logs: healthDigest(healthPoints(ctx, p.id), Number(ctx.timestamp.microsSinceUnixEpoch)),
     },
     null,
     2
