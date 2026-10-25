@@ -75,11 +75,9 @@
   --vital-spo2: #5c6f7a;
   --vital-temp: #8a7148;
 
-  --font-display: 'Peignot', 'Peignot LT Std', 'Peignot Std', 'Poiret One', 'Times New Roman', serif;
-  --font-ui: 'Times New Roman', Times, 'Liberation Serif', serif;
-  --font-body: 'Times New Roman', Times, 'Liberation Serif', serif;
+  --font-display: 'Peignot', 'Peignot LT Std', 'Peignot Std', 'Poiret One', 'Google Sans Flex Variable', sans-serif;
   --display-weight: 400;
-  --blur: blur(14px) saturate(60%);
+  --blur: blur(16px);
 }
 :root[data-theme='professional'] :is(
     .kicker,
@@ -108,10 +106,6 @@
 :root[data-theme='professional'] :is(.kicker, .panel__title, .tile__label, .field__label, .sbar__label) {
   letter-spacing: 0.16em;
 }
-:root[data-theme='professional'] canvas {
-  filter: saturate(0.35);
-}
-
 * {
   box-sizing: border-box;
 }
@@ -206,7 +200,7 @@ h3 {
   font-size: clamp(44px, 7vw, 76px);
 }
 .titlecard--name {
-  font-size: clamp(40px, 4.4vw, 64px);
+  font-size: clamp(28px, 2.8vw, 40px);
   text-transform: none;
   line-height: 0.9;
 }
